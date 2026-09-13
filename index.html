@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Search & Knowledge Assistant Pro</title>
+<!-- Prism.js CSS สำหรับ Highlight Syntax Code -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+<!-- Marked.js สำหรับแปลง Markdown เป็น HTML -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<!-- Prism.js JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+
+<style>
+  :root {
+    --bg: #090a0f;
+    --panel: #12151e;
+    --panel-2: #1a1f2c;
+    --border: #262d3d;
+    --border-focus: #4f70ff;
+    --text: #f0f3f9;
+    --muted: #8c96ab;
+    --accent: #4f70ff;
+    --accent-hover: #3b5bdb;
+    --accent-2: #10b981;
+    --danger: #ef4444;
+    --radius: 16px;
+    --shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(1000px 600px at 10% -10%, #1e1b4b 0%, transparent 60%),
+      radial-gradient(800px 500px at 90% 10%, #064e3b 0%, transparent 50%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", "Noto Sans Thai", system-ui, -apple-system, sans-serif;
+    padding: 32px 16px 80px;
+    line-height: 1.6;
+  }
+
+  .wrap { max-width: 960px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 32px; }
+  header h1 {
+    margin: 0 0 8px;
+    font-size: 32px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #818cf8 0%, #34d399 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.5px;
+  }
+  header p { margin: 0; color: var(--muted); font-size: 15px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+    transition: border-color 0.2s;
+  }
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .card h2 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > * { flex: 1; min-width: 160px; }
+
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+
+  input, select, textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(79, 112, 255, 0.2);
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  button:hover { background: var(--accent-hover); transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  
+  button.ghost {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  button.ghost:hover { border-color: var(--muted); background: var(--border); }
+
+  button.danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+  button.danger:hover { background: var(--danger); color: #fff; }
+
+  .search-bar { display: flex; gap: 10px; position: relative; }
+  .search-bar input { flex: 1; padding: 16px 20px; font-size: 16px; border-radius: 12px; }
+
+  #status { font-size: 13px; color: var(--muted); min-height: 20px; margin-top: 12px; display: flex; align-items: center; gap: 8px; }
+  #status.err { color: var(--danger); }
+  #status.ok { color: var(--accent-2); }
+
+  /* Output Rendering & Markdown Styling */
+  .result-container {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    min-height: 120px;
+    position: relative;
+    overflow-x: auto;
+  }
+
+  .result-body { color: var(--text); font-size: 15px; line-height: 1.7; }
+  .result-body:empty::before { content: "ผลลัพธ์การวิเคราะห์จะแสดงที่นี่..."; color: var(--muted); }
+  .result-body h1, .result-body h2, .result-body h3 { color: #fff; margin-top: 1.2em; margin-bottom: 0.6em; }
+  .result-body p { margin-bottom: 1em; }
+  .result-body ul, .result-body ol { padding-left: 20px; margin-bottom: 1em; }
+  .result-body code:not(pre code) {
+    background: rgba(255,255,255,0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--accent-2);
+  }
+  .result-body pre {
+    border-radius: 8px;
+    margin: 1em 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .chip {
+    padding: 8px 14px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--text); transform: translateY(-1px); }
+
+  /* Pulse Animation */
+  .dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent-2);
+    animation: pulse 1s infinite alternate;
+  }
+  @keyframes pulse { 0% { opacity: 0.2; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); } }
+
+  .actions { display: flex; gap: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>AI Search Pro</h1>
+    <p>ระบบค้นหา สรุปข้อมูล และวิเคราะห์เชิงลึกด้วย AI (รองรับ Streaming API)</p>
+  </header>
+
+  <!-- ===== ส่วนตั้งค่า API ===== -->
+  <section class="card">
+    <div class="card-header">
+      <h2>ตั้งค่า API & Provider</h2>
+      <button id="toggleConfig" class="ghost" style="padding:4px 10px; font-size:12px;">ซ่อน/แสดง</button>
+    </div>
+    <div id="configSection">
+      <div class="row">
+        <div>
+          <label for="provider">ผู้ให้บริการ (Provider)</label>
+          <select id="provider">
+            <option value="gemini">Google Gemini</option>
+            <option value="https://api.openai.com/v1/chat/completions">OpenAI</option>
+            <option value="https://api.groq.com/openai/v1/chat/completions">Groq</option>
+            <option value="https://openrouter.ai/api/v1/chat/completions">OpenRouter</option>
+            <option value="custom">Custom Endpoint...</option>
+          </select>
+        </div>
+        <div>
+          <label for="model">โมเดล (Model)</label>
+          <input id="model" placeholder="gemini-2.5-flash / gpt-4o-mini" />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <div style="flex:3;">
+          <label for="apiKey">API Key</label>
+          <input id="apiKey" type="password" placeholder="AIzaSy... / sk-..." autocomplete="off" />
+        </div>
+        <div style="flex:0 0 auto; display:flex; align-items:flex-end; gap:8px;">
+          <button id="saveKey">บันทึก Key</button>
+          <button id="clearKey" class="ghost">ล้าง</button>
+        </div>
+      </div>
+
+      <div id="customBox" style="display:none; margin-top:12px;">
+        <label for="customUrl">Custom Endpoint URL</label>
+        <input id="customUrl" placeholder="https://your-api.com/v1/chat/completions" />
+      </div>
+    </div>
+    <div id="status"></div>
+  </section>
+
+  <!-- ===== ช่องค้นหา ===== -->
+  <section class="card">
+    <h2>ค้นหาและสอบถาม</h2>
+    <div class="search-bar" style="margin-top:8px;">
+      <input id="query" placeholder="พิมพ์สิ่งที่อยากค้นหา เช่น สรุป architecture ของ Microservices" />
+      <button id="searchBtn">ค้นหา</button>
+      <button id="stopBtn" class="danger" style="display:none;">หยุด</button>
+    </div>
+    <div class="chips">
+      <span class="chip">อธิบาย JavaScript Async/Await และ Event Loop</span>
+      <span class="chip">เปรียบเทียบ SQL vs NoSQL เมื่อไหร่ควรรใช้อะไร</span>
+      <span class="chip">สรุปเทรนด์การตลาด AI ปี 2026 ใน 5 ข้อ</span>
+    </div>
+  </section>
+
+  <!-- ===== ผลลัพธ์ ===== -->
+  <section class="card">
+    <div class="card-header">
+      <h2>คำตอบจาก AI</h2>
+      <div class="actions">
+        <button id="copyBtn" class="ghost" style="padding:6px 12px; font-size:12px;">📋 คัดลอก</button>
+      </div>
+    </div>
+    <div class="result-container">
+      <div id="result" class="result-body"></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ---------- 1) อ้างอิง DOM Elements & Constants ---------- */
+const $ = (id) => document.getElementById(id);
+const providerEl = $("provider"), modelEl = $("model"), keyEl = $("apiKey");
+const customBox = $("customBox"), customUrl = $("customUrl");
+const queryEl = $("query"), searchBtn = $("searchBtn"), stopBtn = $("stopBtn"), copyBtn = $("copyBtn");
+const resultEl = $("result"), statusEl = $("status");
+const configSection = $("configSection"), toggleConfigBtn = $("toggleConfig");
+
+let controller = null;
+let rawMarkdownBuffer = "";
+
+// ค่า Model เริ่มต้นสำหรับแต่ละ Provider
+const DEFAULT_MODELS = {
+  "gemini": "gemini-2.5-flash",
+  "https://api.openai.com/v1/chat/completions": "gpt-4o-mini",
+  "https://api.groq.com/openai/v1/chat/completions": "llama-3.3-70b-versatile",
+  "https://openrouter.ai/api/v1/chat/completions": "meta-llama/llama-3.3-70b-instruct"
+};
+
+/* ---------- 2) Initialization & Event Listeners ---------- */
+window.addEventListener("load", () => {
+  keyEl.value      = localStorage.getItem("ai_key")      || "";
+  providerEl.value = localStorage.getItem("ai_provider") || "gemini";
+  customUrl.value  = localStorage.getItem("ai_custom")   || "";
+  
+  const savedModel = localStorage.getItem("ai_model");
+  modelEl.value    = savedModel || DEFAULT_MODELS[providerEl.value] || "gemini-2.5-flash";
+
+  toggleCustom();
+  if (keyEl.value) setStatus("พบ API Key ที่บันทึกไว้ พร้อมใช้งาน", "ok");
+  
+  // ตั้งค่า Marked.js
+  marked.setOptions({ breaks: true, gfm: true });
+});
+
+providerEl.addEventListener("change", () => {
+  toggleCustom();
+  if (DEFAULT_MODELS[providerEl.value]) {
+    modelEl.value = DEFAULT_MODELS[providerEl.value];
+  }
+});
+
+toggleConfigBtn.addEventListener("click", () => {
+  const isHidden = configSection.style.display === "none";
+  configSection.style.display = isHidden ? "block" : "none";
+  toggleConfigBtn.textContent = isHidden ? "ซ่อน/แสดง" : "ขยาย";
+});
+
+function toggleCustom() {
+  customBox.style.display = providerEl.value === "custom" ? "block" : "none";
+}
+
+/* ---------- 3) Key Management ---------- */
+$("saveKey").addEventListener("click", () => {
+  if (!keyEl.value.trim()) return setStatus("กรุณากรอก API Key ก่อนบันทึก", "err");
+  localStorage.setItem("ai_key", keyEl.value.trim());
+  localStorage.setItem("ai_model", modelEl.value.trim());
+  localStorage.setItem("ai_provider", providerEl.value);
+  localStorage.setItem("ai_custom", customUrl.value.trim());
+  setStatus("บันทึกการตั้งค่าเรียบร้อย ✓", "ok");
+});
+
+$("clearKey").addEventListener("click", () => {
+  localStorage.clear();
+  keyEl.value = "";
+  modelEl.value = DEFAULT_MODELS["gemini"];
+  providerEl.value = "gemini";
+  customUrl.value = "";
+  toggleCustom();
+  setStatus("ล้างข้อมูลการตั้งค่าทั้งหมดแล้ว", "");
+});
+
+/* ---------- 4) Search Actions & Controls ---------- */
+document.querySelectorAll(".chip").forEach(c => {
+  c.addEventListener("click", () => { queryEl.value = c.textContent; runSearch(); });
+});
+
+searchBtn.addEventListener("click", runSearch);
+queryEl.addEventListener("keydown", e => { if (e.key === "Enter") runSearch(); });
+stopBtn.addEventListener("click", () => controller && controller.abort());
+
+copyBtn.addEventListener("click", () => {
+  if (!rawMarkdownBuffer) return;
+  navigator.clipboard.writeText(rawMarkdownBuffer).then(() => {
+    const originalText = copyBtn.textContent;
+    copyBtn.textContent = "✓ คัดลอกแล้ว!";
+    setTimeout(() => copyBtn.textContent = originalText, 2000);
+  });
+});
+
+/* ---------- 5) Core Execution Engine (Stream Fetch & Markdown Render) ---------- */
+async function runSearch() {
+  const key      = keyEl.value.trim();
+  const q        = queryEl.value.trim();
+  const provider = providerEl.value;
+  const model    = modelEl.value.trim() || DEFAULT_MODELS[provider] || "gemini-2.5-flash";
+
+  if (!key) return setStatus("กรุณาใส่ API Key ก่อนเริ่มใช้งาน", "err");
+  if (!q)   return setStatus("กรุณากรอกคำถามหรือคำค้นหา", "err");
+
+  rawMarkdownBuffer = "";
+  resultEl.innerHTML = "";
+  setLoading(true);
+  setStatus('<span class="dot"></span>กำลังประมวลผลข้อมูล...', "");
+
+  controller = new AbortController();
+
+  try {
+    let fetchUrl = "";
+    let fetchHeaders = { "Content-Type": "application/json" };
+    let fetchBody = {};
+
+    const systemPrompt = "คุณคือผู้เชี่ยวชาญด้านการวิเคราะห์และค้นหาข้อมูล ตอบคำถามเป็นภาษาไทยอย่างถูกต้อง ชัดเจน ละเอียด และจัดรูปแบบด้วย Markdown ที่สวยงาม อ่านง่าย";
+
+    // จัดการ Payload และ Endpoint ตามชนิดของ Provider
+    if (provider === "gemini") {
+      fetchUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${key}`;
+      fetchBody = {
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: "user", parts: [{ text: q }] }],
+        generationConfig: { temperature: 0.3 }
+      };
+    } else {
+      fetchUrl = provider === "custom" ? customUrl.value.trim() : provider;
+      if (!fetchUrl) throw new Error("กรุณาระบุ Custom Endpoint URL");
+      
+      fetchHeaders["Authorization"] = `Bearer ${key}`;
+      fetchBody = {
+        model: model,
+        stream: true,
+        temperature: 0.3,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: q }
+        ]
+      };
+    }
+
+    const res = await fetch(fetchUrl, {
+      method: "POST",
+      signal: controller.signal,
+      headers: fetchHeaders,
+      body: JSON.stringify(fetchBody)
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status} — ${errText.slice(0, 250)}`);
+    }
+
+    // Stream Reader Processing
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop(); // เก็บเศษบรรทัดที่ยังไม่สมบูรณ์ไว้รอบถัดไป
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const dataStr = trimmed.slice(5).trim();
+        if (dataStr === "[DONE]") continue;
+
+        try {
+          const json = JSON.parse(dataStr);
+          let chunk = "";
+
+          if (provider === "gemini") {
+            chunk = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          } else {
+            chunk = json.choices?.[0]?.delta?.content || "";
+          }
+
+          if (chunk) {
+            rawMarkdownBuffer += chunk;
+            // Real-time Markdown Rendering
+            resultEl.innerHTML = marked.parse(rawMarkdownBuffer);
+            Prism.highlightAllUnder(resultEl);
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          }
+        } catch (_) { /* ข้าม Partial JSON ที่ย่อยไม่สำเร็จ */ }
+      }
+    }
+    
+    setStatus("ค้นหาและประมวลผลเสร็จสิ้น ✓", "ok");
+
+  } catch (err) {
+    if (err.name === "AbortError") {
+      setStatus("ยกเลิกการค้นหาเรียบร้อยแล้ว", "");
+    } else {
+      setStatus("เกิดข้อผิดพลาด: " + err.message, "err");
+    }
+  } finally {
+    setLoading(false);
+    controller = null;
+  }
+}
+
+/* ---------- 6) Helper Functions ---------- */
+function setLoading(on) {
+  searchBtn.disabled = on;
+  searchBtn.textContent = on ? "กำลังประมวลผล..." : "ค้นหา";
+  stopBtn.style.display = on ? "inline-block" : "none";
+}
+
+function setStatus(msg, cls) {
+  statusEl.innerHTML = msg;
+  statusEl.className = cls || "";
+}
+</script>
+</body>
+            </html>
+            
