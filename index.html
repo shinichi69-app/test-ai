@@ -544,14 +544,14 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 /* ---------- Global State: API Config (Single Source of Truth) ---------- */
 window.apiConfig = {
   provider: "gemini",
-  model: "gemini-2.5-flash",
+  model: "gemini-3.6-flash",
   apiKey: "",
   customUrl: "",
   loaded: false  // flag บอกว่า Firebase ส่งข้อมูลมาหรือยัง
 };
 
 const DEFAULT_MODELS = {
-  "gemini": "gemini-2.5-flash",
+  "gemini": "gemini-3.6-flash",
   "https://api.openai.com/v1/chat/completions": "gpt-4o-mini",
   "https://api.groq.com/openai/v1/chat/completions": "llama-3.3-70b-versatile",
   "https://openrouter.ai/api/v1/chat/completions": "meta-llama/llama-3.3-70b-instruct"
@@ -562,7 +562,7 @@ window.__applyApiConfig = function(data) {
   if (!data) return;
   window.apiConfig = {
     provider: data.provider || "gemini",
-    model: data.model || DEFAULT_MODELS[data.provider || "gemini"] || "gemini-2.5-flash",
+    model: data.model || DEFAULT_MODELS[data.provider || "gemini"] || "gemini-3.6-flash",
     apiKey: data.apiKey || "",
     customUrl: data.customUrl || "",
     loaded: true
@@ -693,7 +693,7 @@ function setLoading(on) {
 window.addEventListener("load", () => {
   // ตั้งค่าเริ่มต้น - จะถูก override โดย __applyApiConfig เมื่อ Firebase พร้อม
   providerEl.value = "gemini";
-  modelEl.value = "gemini-2.5-flash";
+  modelEl.value = "gemini-3.6-flash";
   keyEl.value = "";
   customUrl.value = "";
   toggleCustom();
@@ -752,9 +752,9 @@ $("#saveKey").addEventListener("click", async () => {
 });
 
 $("#clearKey").addEventListener("click", () => {
-  window.apiConfig = { provider: "gemini", model: "gemini-2.5-flash", apiKey: "", customUrl: "", loaded: true };
+  window.apiConfig = { provider: "gemini", model: "gemini-3.6-flash", apiKey: "", customUrl: "", loaded: true };
   keyEl.value = "";
-  modelEl.value = "gemini-2.5-flash";
+  modelEl.value = "gemini-3.6-flash";
   providerEl.value = "gemini";
   customUrl.value = "";
   toggleCustom();
