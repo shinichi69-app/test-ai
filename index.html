@@ -547,14 +547,15 @@ window.apiConfig = {
   model: "gemini-3.6-flash",
   apiKey: "",
   customUrl: "",
-  loaded: false  // flag บอกว่า Firebase ส่งข้อมูลมาหรือยัง
+  loaded: false
 };
 
+// ✅ แก้ไข: เปลี่ยน default models เป็น Qwen สำหรับ Groq และ OpenRouter
 const DEFAULT_MODELS = {
   "gemini": "gemini-3.6-flash",
   "https://api.openai.com/v1/chat/completions": "gpt-4o-mini",
-  "https://api.groq.com/openai/v1/chat/completions": "llama-3.3-70b-versatile",
-  "https://openrouter.ai/api/v1/chat/completions": "meta-llama/llama-3.3-70b-instruct"
+  "https://api.groq.com/openai/v1/chat/completions": "qwen/qwen3-32b",  // ✅ Groq: Qwen3-32B (ฟรี)
+  "https://openrouter.ai/api/v1/chat/completions": "qwen/qwen-2.5-7b-instruct:free"  // ✅ OpenRouter: Qwen 2.5 (ฟรี)
 };
 
 /* ---------- Callback: รับ config จาก Firebase Module ---------- */
@@ -568,7 +569,6 @@ window.__applyApiConfig = function(data) {
     loaded: true
   };
   
-  // อัปเดต UI (ถ้าอยู่ใน owner-mode จะเห็น config panel)
   const providerEl = document.getElementById('provider');
   const modelEl = document.getElementById('model');
   const keyEl = document.getElementById('apiKey');
@@ -691,7 +691,6 @@ function setLoading(on) {
 }
 
 window.addEventListener("load", () => {
-  // ตั้งค่าเริ่มต้น - จะถูก override โดย __applyApiConfig เมื่อ Firebase พร้อม
   providerEl.value = "gemini";
   modelEl.value = "gemini-3.6-flash";
   keyEl.value = "";
@@ -706,7 +705,6 @@ providerEl.addEventListener("change", () => {
   if (DEFAULT_MODELS[providerEl.value]) {
     modelEl.value = DEFAULT_MODELS[providerEl.value];
   }
-  // sync กลับไป apiConfig
   window.apiConfig.provider = providerEl.value;
   window.apiConfig.model = modelEl.value;
 });
@@ -729,7 +727,6 @@ $("#saveKey").addEventListener("click", async () => {
   const newKey = keyEl.value.trim();
   if (!newKey) return setStatus("กรุณากรอก API Key ก่อนบันทึก", "err");
   
-  // อัปเดต local
   window.apiConfig = {
     provider: providerEl.value,
     model: modelEl.value,
@@ -738,7 +735,6 @@ $("#saveKey").addEventListener("click", async () => {
     loaded: true
   };
   
-  // บันทึกกลับ Firestore (ถ้า owner)
   if (window.__saveApiConfigToFirestore) {
     await window.__saveApiConfigToFirestore(window.apiConfig);
     setStatus("บันทึกการตั้งค่าลงระบบ + เรียบร้อย ✓", "ok");
@@ -780,7 +776,6 @@ copyBtn.addEventListener("click", () => {
 });
 
 async function runSearch() {
-  // รอ Firebase load config (สูงสุด 3 วินาที)
   let waitTime = 0;
   while (!window.apiConfig.loaded && waitTime < 3000) {
     await new Promise(r => setTimeout(r, 100));
@@ -932,11 +927,12 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <!-- =========================================================
-🔥 FIREBASE MODULE SCRIPT
+🔥 FIREBASE MODULE SCRIPT (✅ แก้ไขให้รองรับ Anonymous Login)
 ========================================================= -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+// ✅ แก้ไข: เพิ่ม signInAnonymously เข้ามา
+import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -961,11 +957,9 @@ async function loadApiConfig() {
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       const data = snap.data();
-      // เรียก callback ใน script หลัก
       if (window.__applyApiConfig) {
         window.__applyApiConfig(data);
       } else {
-        // ถ้า main script ยังไม่พร้อม เก็บไว้ก่อน
         window.__pendingApiConfig = data;
       }
     } else {
@@ -996,24 +990,44 @@ window.__saveApiConfigToFirestore = async function(config) {
   }
 };
 
-// เรียกโหลดทันที
 loadApiConfig();
 
-// กรณี main script โหลดเสร็จแล้ว แต่ Firebase มาทีหลัง
 if (window.__pendingApiConfig && window.__applyApiConfig) {
   window.__applyApiConfig(window.__pendingApiConfig);
   delete window.__pendingApiConfig;
 }
 
-/* ---------- Auth State ---------- */
-onAuthStateChanged(auth, (user) => {
+/* ---------- ✅ แก้ไข: Auth State (รองรับ Anonymous + Owner) ---------- */
+onAuthStateChanged(auth, async (user) => {
   if (user) {
-    document.body.classList.add('owner-mode');
-    if (roleTag) roleTag.textContent = '[ OWNER ]';
-    loadApiConfig(); // รีโหลดเพื่อ refresh input fields
+    // เช็คว่าเป็น Owner (login ด้วย email/password) หรือ Anonymous (ผู้เยี่ยมชม)
+    const isOwner = user.providerData.length > 0 && user.providerData[0].providerId === 'password';
+    
+    if (isOwner) {
+      document.body.classList.add('owner-mode');
+      if (roleTag) roleTag.textContent = '[ OWNER ]';
+    } else {
+      // Anonymous user (ผู้เยี่ยมชมทั่วไป)
+      document.body.classList.remove('owner-mode');
+      if (roleTag) roleTag.textContent = '[ SUPPORTER ]';
+    }
+    
+    // โหลด API Config (ทั้ง Owner และ Anonymous อ่านได้ เพราะ login แล้ว)
+    loadApiConfig();
+    
+    // บันทึก Visitor (ทำได้เพราะ auth != null)
+    recordVisit();
   } else {
-    document.body.classList.remove('owner-mode');
-    if (roleTag) roleTag.textContent = '[ SUPPORTER ]';
+    // ยังไม่ login → ทำ Anonymous Login อัตโนมัติ
+    try {
+      await signInAnonymously(auth);
+      console.log("[Firebase] Anonymous login successful");
+    } catch (err) {
+      console.error("[Firebase] Anonymous login failed:", err);
+      window.showToast("Anonymous login failed: " + err.message, "error");
+      // ถ้า Anonymous login ล้มเหลว ให้ลองโหลด config แบบไม่ auth (อาจจะ fail ตาม Rules)
+      loadApiConfig();
+    }
   }
 });
 
@@ -1048,9 +1062,10 @@ if (logoutBtn) {
   });
 }
 
-/* ---------- Visitor Counter ---------- */
+/* ---------- ✅ แก้ไข: Visitor Counter (เช็ค auth ก่อนบันทึก) ---------- */
 const visitorDocRef = doc(db, "stats", "visitors");
 const visitorCountEl = document.getElementById('visitor-count');
+
 onSnapshot(visitorDocRef, (docSnap) => {
   if (docSnap.exists() && visitorCountEl) {
     visitorCountEl.textContent = docSnap.data().count.toLocaleString();
@@ -1060,6 +1075,12 @@ onSnapshot(visitorDocRef, (docSnap) => {
 });
 
 async function recordVisit() {
+  // ✅ เช็คก่อนว่า login แล้วหรือยัง (Anonymous หรือ Owner)
+  if (!auth.currentUser) {
+    console.warn("[Firebase] Cannot record visit: not authenticated yet");
+    return;
+  }
+  
   const hasVisited = localStorage.getItem('hasVisited_shinichi');
   if (!hasVisited) {
     try {
@@ -1076,7 +1097,7 @@ async function recordVisit() {
     }
   }
 }
-recordVisit();
+// ✅ ลบ recordVisit(); ทิ้งไป เพราะจะถูกเรียกใน onAuthStateChanged แทน
 </script>
 </body>
 </html>
