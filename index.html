@@ -32,7 +32,6 @@
     flex-direction: column;
   }
 
-  /* ===== Header ===== */
   header {
     display: flex;
     align-items: center;
@@ -63,7 +62,6 @@
   }
   .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* ===== Chat area ===== */
   .chat {
     flex: 1;
     overflow-y: auto;
@@ -146,7 +144,6 @@
   }
   .chip:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* ===== Input ===== */
   .input-area {
     border-top: 1px solid var(--border);
     padding: 16px 20px;
@@ -191,7 +188,6 @@
   .send-btn:hover:not(:disabled) { transform: translateY(-1px); }
   .send-btn:disabled { opacity: .4; cursor: not-allowed; }
 
-  /* ===== Modal ===== */
   .modal-bg {
     position: fixed; inset: 0;
     background: rgba(0,0,0,.6);
@@ -305,17 +301,17 @@
 
     <div class="form-group">
       <label>API Base URL</label>
-      <input id="baseUrl" type="text" placeholder="https://api.openai.com/v1" />
+      <input id="baseUrl" type="text" placeholder="https://api.groq.com/openai/v1" />
     </div>
 
     <div class="form-group">
       <label>API Key</label>
-      <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off" />
+      <input id="apiKey" type="password" placeholder="gsk-..." autocomplete="off" />
     </div>
 
     <div class="form-group">
       <label>Model</label>
-      <input id="model" type="text" placeholder="gpt-4o-mini" />
+      <input id="model" type="text" placeholder="qwen/qwen3-32b" />
     </div>
 
     <div class="form-group">
@@ -346,27 +342,28 @@ import {
   getFirestore, doc, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ⬇️ เติมค่า Firebase ของคุณ
+// ️ เติมค่า Firebase ของคุณ (ได้จาก Project Settings → Your apps)
 const firebaseConfig = {
   apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "xxxx",
-  appId: "xxxx"
+  authDomain: "login-15303.firebaseapp.com",
+  projectId: "login-15303",
+  storageBucket: "login-15303.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
-const CONFIG_DOC = doc(db, "config", "ai_settings");
+// ✅ ตรงกับ Firestore ของคุณ: collection "config", document "api"
+const CONFIG_DOC = doc(db, "config", "api");
 
 // ===== Provider defaults =====
 const PROVIDERS = {
-  openai:    { baseUrl: "https://api.openai.com/v1",            model: "gpt-4o-mini" },
-  groq:      { baseUrl: "https://api.groq.com/openai/v1",       model: "llama-3.3-70b-versatile" },
-  openrouter:{ baseUrl: "https://openrouter.ai/api/v1",         model: "openai/gpt-4o-mini" },
-  custom:    { baseUrl: "",                                      model: "" }
+  openai:     { baseUrl: "https://api.openai.com/v1",            model: "gpt-4o-mini" },
+  groq:       { baseUrl: "https://api.groq.com/openai/v1",       model: "llama-3.3-70b-versatile" },
+  openrouter: { baseUrl: "https://openrouter.ai/api/v1",         model: "openai/gpt-4o-mini" },
+  custom:     { baseUrl: "",                                      model: "" }
 };
 
 // ===== DOM =====
@@ -394,20 +391,21 @@ function applyProviderDefaults(provider) {
   }
 }
 
-$("provider").addEventListener("change", (e) => applyProviderDefaults(e.target.value));
+$("provider").addEventListener("change", (e) => {
+  applyProviderDefaults(e.target.value.toLowerCase());
+});
 
 $("settingsBtn").addEventListener("click", async () => {
   modal.classList.add("show");
-  // โหลดค่าล่าสุดจาก Firestore
   try {
     const snap = await getDoc(CONFIG_DOC);
     if (snap.exists()) {
       const d = snap.data();
-      $("provider").value    = d.provider || "openai";
-      $("baseUrl").value     = d.baseUrl || "";
-      $("apiKey").value      = d.apiKey || "";
-      $("model").value       = d.model || "";
-      $("systemPrompt").value= d.systemPrompt || "You are a helpful assistant. ตอบเป็นภาษาไทยเมื่อผู้ใช้พิมพ์ภาษาไทย";
+      $("provider").value     = (d.provider || "Groq").toLowerCase();
+      $("baseUrl").value      = d.customUrl || "";       // ✅ ตรงกับ field ใน Firestore
+      $("apiKey").value       = d.apiKey || "";
+      $("model").value        = d.model || "";
+      $("systemPrompt").value = d.systemPrompt || "You are a helpful assistant. ตอบเป็นภาษาไทยเมื่อผู้ใช้พิมพ์ภาษาไทย";
     }
   } catch (e) {
     console.error(e);
@@ -421,11 +419,11 @@ $("loadBtn").addEventListener("click", async () => {
     const snap = await getDoc(CONFIG_DOC);
     if (!snap.exists()) return setStatus("⚠️ ยังไม่มีข้อมูลใน Firestore", "err");
     const d = snap.data();
-    $("provider").value    = d.provider || "openai";
-    $("baseUrl").value     = d.baseUrl || "";
-    $("apiKey").value      = d.apiKey || "";
-    $("model").value       = d.model || "";
-    $("systemPrompt").value= d.systemPrompt || "";
+    $("provider").value     = (d.provider || "Groq").toLowerCase();
+    $("baseUrl").value      = d.customUrl || "";       // ✅ customUrl
+    $("apiKey").value       = d.apiKey || "";
+    $("model").value        = d.model || "";
+    $("systemPrompt").value = d.systemPrompt || "";
     setStatus("✅ โหลดแล้ว", "ok");
   } catch (e) {
     setStatus("❌ " + e.message, "err");
@@ -435,14 +433,14 @@ $("loadBtn").addEventListener("click", async () => {
 $("saveBtn").addEventListener("click", async () => {
   const data = {
     provider:     $("provider").value,
-    baseUrl:      $("baseUrl").value.trim(),
+    customUrl:    $("baseUrl").value.trim(),   // ✅ บันทึกเป็น customUrl
     apiKey:       $("apiKey").value.trim(),
     model:        $("model").value.trim(),
     systemPrompt: $("systemPrompt").value.trim(),
     updatedAt:    Date.now()
   };
   if (!data.apiKey) return setStatus("กรุณาใส่ API Key", "err");
-  if (!data.baseUrl) return setStatus("กรุณาใส่ Base URL", "err");
+  if (!data.customUrl) return setStatus("กรุณาใส่ Base URL", "err");
   if (!data.model) return setStatus("กรุณาใส่ Model", "err");
 
   try {
@@ -481,7 +479,6 @@ function renderMessages() {
 }
 
 function appendMessage(role, content, save = true) {
-  // ลบ empty state
   const empty = chatEl.querySelector(".empty");
   if (empty) empty.remove();
 
@@ -519,7 +516,6 @@ $("newChatBtn").addEventListener("click", () => {
   renderMessages();
 });
 
-// Auto-resize textarea
 inputEl.addEventListener("input", () => {
   inputEl.style.height = "auto";
   inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px";
@@ -550,7 +546,6 @@ async function sendMessage() {
   inputEl.value = "";
   inputEl.style.height = "auto";
 
-  // สร้าง AI bubble สำหรับ streaming
   const aiBubble = appendMessage("ai", "");
   aiBubble.classList.add("typing");
 
@@ -564,7 +559,9 @@ async function sendMessage() {
     }
     history.forEach(m => messages.push({ role: m.role, content: m.content }));
 
-    const url = config.baseUrl.replace(/\/$/, "") + "/chat/completions";
+    // ✅ รองรับทั้ง customUrl และ baseUrl
+    const baseUrl = config.customUrl || config.baseUrl;
+    const url = baseUrl.replace(/\/$/, "") + "/chat/completions";
 
     const res = await fetch(url, {
       method: "POST",
@@ -584,7 +581,6 @@ async function sendMessage() {
       throw new Error(`HTTP ${res.status}: ${errText.slice(0, 200)}`);
     }
 
-    // Streaming
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
@@ -611,12 +607,11 @@ async function sendMessage() {
             aiBubble.textContent = fullContent;
             chatEl.scrollTop = chatEl.scrollHeight;
           }
-        } catch (e) { /* ignore parse errors */ }
+        } catch (e) { /* ignore */ }
       }
     }
 
     aiBubble.classList.remove("typing");
-    // บันทึก assistant message
     history.push({ role: "assistant", content: fullContent });
     localStorage.setItem("chat_history", JSON.stringify(history));
 
