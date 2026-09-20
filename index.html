@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>J.A.R.V.I.S - Personal API Assistant</title>
+<title>J.A.R.V.I.S - Voice & API Assistant</title>
 <style>
     :root {
         --jarvis-blue: #00f0ff;
@@ -11,6 +11,7 @@
         --jarvis-gold: #d4af37;
         --bg-color: #050914;
         --panel-bg: rgba(10, 25, 47, 0.7);
+        --active-red: #ff3366;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', 'Courier New', monospace; }
@@ -122,10 +123,10 @@
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ===== แถบป้อนคำสั่ง ===== */
+    /* ===== แถบป้อนคำสั่ง & ปุ่มไมค์ ===== */
     .input-area {
         padding: 20px; border-top: 1px solid var(--jarvis-dark-blue);
-        background: rgba(0,0,0,0.3); display: flex; gap: 15px; align-items: center;
+        background: rgba(0,0,0,0.3); display: flex; gap: 12px; align-items: center;
     }
     #userInput {
         flex: 1; background: rgba(0, 20, 40, 0.6); border: 1px solid var(--jarvis-dark-blue);
@@ -134,6 +135,25 @@
     }
     #userInput:focus { border-color: var(--jarvis-blue); box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
     #userInput::placeholder { color: rgba(0, 240, 255, 0.4); }
+
+    .icon-btn {
+        background: transparent; border: 1px solid var(--jarvis-blue); color: var(--jarvis-blue);
+        padding: 14px 18px; font-size: 1.1rem; cursor: pointer; border-radius: 4px;
+        transition: all 0.3s; display: flex; align-items: center; justify-content: center;
+    }
+    .icon-btn:hover { background: rgba(0, 240, 255, 0.15); box-shadow: 0 0 15px var(--jarvis-blue); }
+    
+    /* สถานะขณะเปิดไมค์ฟังเสียง */
+    .icon-btn.listening {
+        border-color: var(--active-red); color: var(--active-red);
+        animation: micPulse 1.2s infinite ease-in-out;
+        background: rgba(255, 51, 102, 0.15);
+    }
+    @keyframes micPulse {
+        0% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.6); }
+        70% { box-shadow: 0 0 0 12px rgba(255, 51, 102, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0); }
+    }
 
     #sendBtn {
         background: transparent; border: 1px solid var(--jarvis-blue); color: var(--jarvis-blue);
@@ -149,8 +169,9 @@
     @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
 
     @media (max-width: 600px) {
-        .input-area { flex-direction: column; }
-        #sendBtn { width: 100%; }
+        .input-area { flex-wrap: wrap; }
+        #userInput { width: 100%; flex: auto; }
+        #micBtn, #sendBtn { flex: 1; }
         .message { max-width: 95%; }
         #modelSelect { max-width: 100%; }
     }
@@ -167,7 +188,6 @@
         <div class="status"><div class="status-dot"></div> SYSTEM ONLINE</div>
     </header>
 
-    <!-- 🔐 แถบตั้งค่า: Key เก็บใน LocalStorage เท่านั้น ไม่ฝังในโค้ด -->
     <div class="api-bar">
         <label>🔑 API KEY:</label>
         <input type="password" id="apiKeyInput" placeholder="วาง Groq API Key (gsk_...) ที่นี่" autocomplete="off">
@@ -183,7 +203,8 @@
     <div class="chat-area" id="chatArea"></div>
 
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="พิมพ์คำถาม สั่งงาน AI หรือวาง URL API เพื่อทดสอบ..." autocomplete="off">
+        <button class="icon-btn" id="micBtn" onclick="toggleSpeechRecognition()" title="สั่งงานด้วยเสียงภาษาไทย">🎙️</button>
+        <input type="text" id="userInput" placeholder="พิมพ์คำสั่ง หรือกดไมค์เพื่อพูด..." autocomplete="off">
         <button id="sendBtn" onclick="processCommand()">Execute</button>
     </div>
 </div>
@@ -192,45 +213,127 @@
     const chatArea    = document.getElementById('chatArea');
     const userInput   = document.getElementById('userInput');
     const sendBtn     = document.getElementById('sendBtn');
+    const micBtn      = document.getElementById('micBtn');
     const apiKeyInput = document.getElementById('apiKeyInput');
     const keyStatus   = document.getElementById('keyStatus');
     const modelSelect = document.getElementById('modelSelect');
     const ttsBtn      = document.getElementById('ttsBtn');
 
-    // 🧠 บุคลิกของจาร์วิส (แก้ไขได้ตามใจ)
-    const SYSTEM_PROMPT = "คุณคือ J.A.R.V.I.S. ผู้ช่วยส่วนตัวอัจฉริยะประจำเว็บไซต์ พูดจาสุภาพแบบพ่อบ้านผู้ชาญฉลาด ตอบเป็นภาษาไทย กระชับ ได้ใจความ และเรียกผู้ใช้ว่า 'ท่าน'";
+    // 🧠 SYSTEM PROMPT กำหนดคุณลักษณะ J.A.R.V.I.S สำหรับคุณชินอิจิ
+    const SYSTEM_PROMPT = "คุณคือ J.A.R.V.I.S. ผู้ช่วย AI ส่วนตัวระดับสูงของคุณชินอิจิ คุณคือที่ปรึกษาเชิงกลยุทธ์ (Strategic Advisor) สุขุม ชาญฉลาด มีตรรกะ สุภาพ ตอบตรงประเด็น และเรียกผู้ใช้ว่า 'คุณชินอิจิ' เสมอ";
 
-    // 📦 รายชื่อโมเดลสำรอง (ใช้เมื่อโหลดจากเซิร์ฟเวอร์ไม่สำเร็จ)
     const FALLBACK_MODELS = [
-        'openai/gpt-oss-120b',
-        'openai/gpt-oss-20b',
-        'llama-3.3-70b-specdec',
-        'meta-llama/llama-4-scout-17b-16e-instruct',
-        'meta-llama/llama-4-maverick-17b-128e-instruct',
-        'deepseek-r1-distill-llama-70b',
-        'qwen/qwen3-32b',
-        'moonshotai/kimi-k2-instruct'
+        'llama-3.3-70b-versatile',
+        'llama3-8b-8192',
+        'mixtral-8x7b-32768'
     ];
 
-    let conversationHistory = [];   // หน่วยความจำการสนทนา
+    let conversationHistory = [];
     let ttsEnabled = true;
+    let recognition = null;
+    let isListening = false;
+
+    /* ================= 🎙️ ระบบรับเสียงพูด (Speech-to-Text) ================= */
+    function initSpeechRecognition() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            console.warn("เบราว์เซอร์นี้ไม่รองรับ Web Speech Recognition");
+            micBtn.style.display = 'none';
+            return;
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.lang = 'th-TH'; // กำหนดเป็นภาษาไทย
+        recognition.continuous = false;
+        recognition.interimResults = true;
+
+        recognition.onstart = () => {
+            isListening = true;
+            micBtn.classList.add('listening');
+            userInput.placeholder = "กำลังฟังเสียงของคุณชินอิจิ...";
+            if (synth) synth.cancel(); // หยุดเสียงพูดตอบกลับทันทีเมื่อคุณชินอิจิเริ่มพูด
+        };
+
+        recognition.onresult = (event) => {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript;
+            }
+            userInput.value = transcript;
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Speech Recognition Error:", event.error);
+            stopListening();
+        };
+
+        recognition.onend = () => {
+            stopListening();
+            // ส่งคำสั่งทันทีหากมีข้อความที่รับมาได้
+            if (userInput.value.trim().length > 0) {
+                processCommand();
+            }
+        };
+    }
+
+    function toggleSpeechRecognition() {
+        if (!recognition) {
+            alert("เบราว์เซอร์ของคุณไม่รองรับระบบจดจำเสียงพูด กรุณาใช้ Chrome หรือ Edge ครับ");
+            return;
+        }
+        if (isListening) {
+            recognition.stop();
+        } else {
+            userInput.value = '';
+            recognition.start();
+        }
+    }
+
+    function stopListening() {
+        isListening = false;
+        micBtn.classList.remove('listening');
+        userInput.placeholder = "พิมพ์คำสั่ง หรือกดไมค์เพื่อพูด...";
+    }
 
     /* ================= 🔊 ระบบเสียงพูด (Text-to-Speech) ================= */
     const synth = window.speechSynthesis;
+
+    function cleanTextForTTS(text) {
+        return text
+            .replace(/<[^>]*>/g, '')              // ลบ HTML Tags
+            .replace(/\*\*(.*?)\*\*/g, '$1')       // ลบ Bold Markdown
+            .replace(/`([^`]+)`/g, '$1')           // ลบ Code Blocks
+            .replace(/[#*_\-\=]/g, ' ')            // ลบสัญลักษณ์พิเศษ
+            .trim();
+    }
+
     function speak(text) {
         if (!ttsEnabled || !synth) return;
         synth.cancel();
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'th-TH'; u.rate = 1.0; u.pitch = 0.9;
-        synth.speak(u);
+        
+        const cleanText = cleanTextForTTS(text);
+        if (!cleanText) return;
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'th-TH';
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+
+        // เลือก Voice ภาษาไทย (ถ้ามีในระบบ)
+        const voices = synth.getVoices();
+        const thaiVoice = voices.find(v => v.lang.includes('th'));
+        if (thaiVoice) utterance.voice = thaiVoice;
+
+        synth.speak(utterance);
     }
+
     function toggleTTS() {
         ttsEnabled = !ttsEnabled;
         ttsBtn.textContent = ttsEnabled ? '🔊 VOICE' : '🔇 MUTED';
         if (!ttsEnabled && synth) synth.cancel();
     }
 
-    /* =================  ตัวช่วยจัดรูปแบบข้อความ ================= */
+    /* ================= ⚙️ ตัวช่วยจัดรูปแบบข้อความ ================= */
     function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
     function stripHtml(html) { const d = document.createElement('div'); d.innerHTML = html; return d.textContent || ''; }
     function formatAI(t) {
@@ -248,7 +351,7 @@
 
         const header = document.createElement('div');
         header.classList.add('msg-header');
-        header.innerText = sender === 'user' ? 'YOU' : 'J.A.R.V.I.S';
+        header.innerText = sender === 'user' ? 'YOU (ชินอิจิ)' : 'J.A.R.V.I.S';
 
         const content = document.createElement('div');
         content.classList.add('msg-content');
@@ -266,7 +369,9 @@
         chatArea.appendChild(msgDiv);
         chatArea.scrollTop = chatArea.scrollHeight;
 
-        if (sender === 'jarvis' && !isJson && !isError) speak(stripHtml(text));
+        if (sender === 'jarvis' && !isJson && !isError) {
+            speak(stripHtml(text));
+        }
     }
 
     function showTyping() {
@@ -279,28 +384,31 @@
         chatArea.appendChild(msgDiv);
         chatArea.scrollTop = chatArea.scrollHeight;
     }
+    
     function hideTyping() {
         const el = document.getElementById('typingIndicator');
         if (el) el.remove();
     }
 
-    /* ================= 🔐 จัดการ API Key (LocalStorage) ================= */
+    /* ================= 🔐 จัดการ API Key & Models ================= */
     async function saveApiKey() {
         const k = apiKeyInput.value.trim();
-        if (!k) { addMessage("กรุณาวาง API Key ก่อนบันทึกครับท่าน", 'jarvis', false, true); return; }
+        if (!k) { addMessage("กรุณาวาง API Key ก่อนบันทึกครับคุณชินอิจิ", 'jarvis', false, true); return; }
         localStorage.setItem('jarvis_groq_key', k);
         apiKeyInput.value = '';
         updateKeyStatus();
         addMessage("บันทึก API Key เรียบร้อยครับ กำลังซิงค์รายชื่อโมเดลล่าสุด...", 'jarvis');
         await loadAvailableModels(true);
     }
+
     function clearApiKey() {
         localStorage.removeItem('jarvis_groq_key');
         localStorage.removeItem('jarvis_last_model');
         updateKeyStatus();
         modelSelect.innerHTML = '<option value="">⏳ กำลังรอ API Key...</option>';
-        addMessage("ลบ API Key ออกจากระบบแล้วครับ", 'jarvis');
+        addMessage("ลบ API Key ออกจากระบบเรียบร้อยแล้วครับคุณชินอิจิ", 'jarvis');
     }
+
     function updateKeyStatus() {
         if (localStorage.getItem('jarvis_groq_key')) {
             keyStatus.textContent = '● KEY พร้อมใช้งาน';
@@ -311,7 +419,6 @@
         }
     }
 
-    /* ================= 🔄 โหลดรายชื่อโมเดลจาก Groq อัตโนมัติ ================= */
     function populateModelSelect(models) {
         const saved = localStorage.getItem('jarvis_last_model') || '';
         modelSelect.innerHTML = models
@@ -339,14 +446,13 @@
             if (chatModels.length === 0) throw new Error('ไม่พบโมเดลในบัญชีนี้');
 
             populateModelSelect(chatModels);
-            if (showChatMsg) addMessage(`ซิงค์รายชื่อโมเดลสำเร็จ พบ ${chatModels.length} โมเดลพร้อมใช้งานครับท่าน`, 'jarvis');
+            if (showChatMsg) addMessage(`ซิงค์รายชื่อโมเดลสำเร็จ พบ ${chatModels.length} โมเดลพร้อมใช้งานครับคุณชินอิจิ`, 'jarvis');
         } catch (err) {
             populateModelSelect(FALLBACK_MODELS);
-            if (showChatMsg) addMessage(`โหลดรายการโมเดลจากเซิร์ฟเวอร์ไม่สำเร็จ (${escapeHtml(err.message)}) — ใช้รายชื่อสำรองแทนครับท่าน`, 'jarvis', false, true);
+            if (showChatMsg) addMessage(`โหลดรายการโมเดลจากเซิร์ฟเวอร์ไม่สำเร็จ — ใช้รายชื่อสำรองแทนครับ`, 'jarvis', false, true);
         }
     }
 
-    // จดจำโมเดลที่ผู้ใช้เลือกล่าสุด
     modelSelect.addEventListener('change', () => {
         localStorage.setItem('jarvis_last_model', modelSelect.value);
     });
@@ -358,9 +464,9 @@
 
     async function callGroqAPI(userText) {
         const apiKey = localStorage.getItem('jarvis_groq_key');
-        if (!apiKey) throw new Error("ยังไม่ได้ตั้งค่า API Key กรุณากรอกที่แถบด้านบนแล้วกด SAVE");
+        if (!apiKey) throw new Error("ยังไม่ได้ตั้งค่า API Key กรุณากรอกที่แถบด้านบนแล้วกด SAVE ครับ");
         const model = modelSelect.value;
-        if (!model) throw new Error("ยังไม่ได้เลือกโมเดล กรุณารอระบบโหลดรายชื่อโมเดลก่อน");
+        if (!model) throw new Error("ยังไม่ได้เลือกโมเดล กรุณารอระบบโหลดรายชื่อโมเดลก่อนครับ");
 
         conversationHistory.push({ role: 'user', content: userText });
         trimHistory();
@@ -369,12 +475,12 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`   // Key มาจากตัวแปร ไม่ฮาร์ดโค้ด
+                'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
                 model: model,
                 messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...conversationHistory],
-                temperature: 0.7,
+                temperature: 0.6,
                 max_tokens: 1024
             })
         });
@@ -382,16 +488,7 @@
         if (!res.ok) {
             let msg = `HTTP ${res.status}`;
             try { const e = await res.json(); msg = e.error?.message || msg; } catch (_) {}
-            if (res.status === 401) msg = "API Key ไม่ถูกต้องหรือหมดอายุ (401 Unauthorized)";
-            if (res.status === 429) msg = "เกินโควต้าการใช้งาน (429 Rate Limit) กรุณาลองใหม่ภายหลัง";
-
-            conversationHistory.pop();   // เอาคำถามที่ล้มเหลวออกจากหน่วยความจำ
-
-            // ถ้าโมเดลตาย/ถูกถอด → รีเฟรชรายชื่ออัตโนมัติเบื้องหลัง
-            if (/does not exist|no access|deprecated/i.test(msg)) {
-                loadAvailableModels(false);
-                msg += " — ระบบรีเฟรชรายชื่อโมเดลให้อัตโนมัติแล้ว กรุณากดส่งอีกครั้ง";
-            }
+            conversationHistory.pop();
             throw new Error(msg);
         }
 
@@ -402,20 +499,7 @@
         return reply;
     }
 
-    /* ================= 🌐 ทดสอบ URL API (GET) ================= */
-    async function testUrl(url) {
-        const start = performance.now();
-        const res = await fetch(url);
-        const ms = ((performance.now() - start) / 1000).toFixed(2);
-        const ct = res.headers.get('content-type') || '';
-        let body = ct.includes('application/json')
-            ? JSON.stringify(await res.json(), null, 2)
-            : await res.text();
-        if (body.length > 3000) body = body.slice(0, 3000) + '\n... (ข้อมูลยาวเกิน แสดงเฉพาะส่วนต้น)';
-        return { status: res.status, statusText: res.statusText, ms, body, ok: res.ok };
-    }
-
-    /* ================= 🧠 สมองกลประมวลผลคำสั่ง ================= */
+    /* ================= 🧠 ประมวลผลคำสั่ง ================= */
     async function processCommand() {
         const input = userInput.value.trim();
         if (!input) return;
@@ -424,50 +508,25 @@
         userInput.value = '';
         sendBtn.disabled = true;
         showTyping();
-        await new Promise(r => setTimeout(r, 400));
-        hideTyping();
 
         const low = input.toLowerCase();
 
         try {
             if (low === 'clear' || input === 'ล้าง') {
+                hideTyping();
                 chatArea.innerHTML = '';
                 conversationHistory = [];
-                addMessage("ล้างหน้าจอและหน่วยความจำการสนทนาเรียบร้อยแล้วครับ", 'jarvis');
-            }
-            else if (low === 'help' || input === 'ช่วยเหลือ') {
-                addMessage(`คำสั่งที่รองรับ:<br>
-                    • พิมพ์คำถาม/ประโยคทั่วไป → ส่งเข้า Groq AI (จำบริบทการคุยได้)<br>
-                    • วาง <b>URL</b> (http/https) → ทดสอบ API แบบ GET<br>
-                    • <b>models</b> / โมเดล → ซิงค์และแสดงรายชื่อโมเดลทั้งหมด<br>
-                    • <b>time</b> / เวลา → บอกเวลาปัจจุบัน<br>
-                    • <b>clear</b> / ล้าง → ล้างหน้าจอและหน่วยความจำ<br>
-                    • <b>help</b> → แสดงคำสั่งนี้<br><br>
-                    ⚙️ ตั้งค่า API Key ที่แถบด้านบนก่อนใช้งาน AI ครับท่าน`, 'jarvis');
+                addMessage("ล้างหน้าจอและหน่วยความจำการสนทนาเรียบร้อยแล้วครับคุณชินอิจิ", 'jarvis');
             }
             else if (low === 'time' || input === 'เวลา') {
-                addMessage(`เวลาปัจจุบันของระบบ: ${new Date().toLocaleString('th-TH', { dateStyle: 'full', timeStyle: 'medium' })}`, 'jarvis');
-            }
-            else if (low === 'models' || input === 'โมเดล') {
-                addMessage("กำลังซิงค์รายชื่อโมเดลล่าสุดจาก Groq ครับท่าน...", 'jarvis');
-                await loadAvailableModels(false);
-                const list = Array.from(modelSelect.options).map(o => '• ' + o.value).join('<br>');
-                addMessage(`โมเดลที่พร้อมใช้งานขณะนี้:<br>${list}`, 'jarvis');
-            }
-            else if (/^https?:\/\//i.test(input)) {
-                addMessage(`กำลังสแกนปลายทาง: <code>${escapeHtml(input)}</code>`, 'jarvis');
-                showTyping();
-                const r = await testUrl(input);
                 hideTyping();
-                const color = r.ok ? '#00ff88' : '#ff5555';
-                addMessage(`ผลการทดสอบ API:<br><b>Status:</b> <span style="color:${color}">${r.status} ${r.statusText}</span><br><b>Response Time:</b> ${r.ms} วินาที`, 'jarvis');
-                addMessage(r.body, 'jarvis', true);
+                addMessage(`เวลาปัจจุบันของระบบ: ${new Date().toLocaleString('th-TH', { dateStyle: 'full', timeStyle: 'medium' })}`, 'jarvis');
             }
             else {
                 if (!localStorage.getItem('jarvis_groq_key')) {
-                    addMessage("ระบบยังไม่ได้รับกุญแจเข้าถึง (API Key) กรุณากรอกที่แถบด้านบนแล้วกด SAVE ก่อนครับท่าน", 'jarvis', false, true);
+                    hideTyping();
+                    addMessage("ระบบยังไม่ได้รับกุญแจเข้าถึง (API Key) กรุณากรอกที่แถบด้านบนแล้วกด SAVE ก่อนครับคุณชินอิจิ", 'jarvis', false, true);
                 } else {
-                    showTyping();
                     const reply = await callGroqAPI(input);
                     hideTyping();
                     addMessage(formatAI(reply), 'jarvis');
@@ -478,7 +537,6 @@
             addMessage(`ข้อผิดพลาดของระบบ: ${escapeHtml(err.message)}`, 'jarvis', false, true);
         } finally {
             sendBtn.disabled = false;
-            userInput.focus();
         }
     }
 
@@ -487,13 +545,23 @@
 
     window.onload = async () => {
         updateKeyStatus();
+        initSpeechRecognition();
+        
+        // เคลียร์ Voice Engine Cache
+        if (synth) {
+            synth.getVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = () => synth.getVoices();
+            }
+        }
+
         const hasKey = !!localStorage.getItem('jarvis_groq_key');
         addMessage(hasKey
-            ? "ระบบ J.A.R.V.I.S ออนไลน์ครบถ้วนครับท่าน กำลังซิงค์รายชื่อโมเดลล่าสุดจาก Groq..."
-            : "ระบบ J.A.R.V.I.S ออนไลน์แล้วครับท่าน<br>เริ่มต้นใช้งาน: วาง <b>Groq API Key</b> ที่แถบด้านบน กด SAVE แล้วพิมพ์ <b>help</b> เพื่อดูคำสั่งทั้งหมด",
+            ? "ระบบ J.A.R.V.I.S ออนไลน์พร้อมใช้งานครับคุณชินอิจิ สามารถพิมพ์คำสั่งหรือกดปุ่มไมค์เพื่อสั่งการด้วยเสียงได้ทันทีครับ"
+            : "ระบบ J.A.R.V.I.S ออนไลน์แล้วครับคุณชินอิจิ กรุณาตั้งค่า **Groq API Key** ที่แถบด้านบนเพื่อเริ่มการทำงานครับ",
             'jarvis');
+            
         if (hasKey) await loadAvailableModels(false);
-        userInput.focus();
     };
 </script>
 
