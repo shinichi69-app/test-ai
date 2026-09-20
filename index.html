@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>KIM AI Assistant</title>
+<title>My AI Assistant</title>
 <style>
   :root {
     --bg: #0b0d12;
@@ -31,7 +31,6 @@
     display: flex;
     flex-direction: column;
   }
-
   header {
     display: flex;
     align-items: center;
@@ -256,7 +255,7 @@
 <body>
 
 <header>
-  <h1>🤖 My AI Assistant</h1>
+  <h1> My AI Assistant</h1>
   <div class="actions">
     <button class="icon-btn" id="newChatBtn">✨ New Chat</button>
     <button class="icon-btn" id="settingsBtn">⚙️ Settings</button>
@@ -287,7 +286,7 @@
 <div class="modal-bg" id="modal">
   <div class="modal">
     <h2>⚙️ ตั้งค่า AI</h2>
-    <p class="sub">ข้อมูลจะถูกบันทึกไว้ใน Firebase Firestore (ไม่อยู่ในโค้ด)</p>
+    <p class="sub">ข้อมูลจะถูกบันทึกไว้ใน Firebase Firestore</p>
 
     <div class="form-group">
       <label>API Provider</label>
@@ -295,7 +294,7 @@
         <option value="openai">OpenAI</option>
         <option value="groq">Groq</option>
         <option value="openrouter">OpenRouter</option>
-        <option value="custom">Custom (OpenAI-compatible)</option>
+        <option value="custom">Custom</option>
       </select>
     </div>
 
@@ -311,11 +310,11 @@
 
     <div class="form-group">
       <label>Model</label>
-      <input id="model" type="text" placeholder="qwen/qwen3-32b" />
+      <input id="model" type="text" placeholder="llama-3.3-70b-versatile" />
     </div>
 
     <div class="form-group">
-      <label>System Prompt (บุคลิก AI)</label>
+      <label>System Prompt</label>
       <textarea id="systemPrompt" rows="3" placeholder="You are a helpful assistant..."></textarea>
     </div>
 
@@ -327,39 +326,35 @@
     <div id="status" class="status"></div>
 
     <div class="hint">
-      <b>Provider Defaults:</b><br>
-      • OpenAI → <code>https://api.openai.com/v1</code> / model: <code>gpt-4o-mini</code><br>
-      • Groq → <code>https://api.groq.com/openai/v1</code> / model: <code>llama-3.3-70b-versatile</code><br>
-      • OpenRouter → <code>https://openrouter.ai/api/v1</code> / model: <code>openai/gpt-4o-mini</code>
+      <b>Groq Models:</b><br>
+      • <code>llama-3.3-70b-versatile</code><br>
+      • <code>llama-3.1-8b-instant</code><br>
+      • <code>mixtral-8x7b-32768</code><br>
+      • <code>gemma2-9b-it</code><br>
+      • <code>qwen-qwq-32b</code>
     </div>
   </div>
 </div>
 
-<!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, doc, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ️ เติมค่า Firebase ของคุณ (ได้จาก Project Settings → Your apps)
 const firebaseConfig = {
-  apiKey: "AIzaSyCGG103Vc3C7xhgW-4XQRU4K0OzuotLx-I",
+  apiKey: "YOUR_FIREBASE_API_KEY",
   authDomain: "login-15303.firebaseapp.com",
   projectId: "login-15303",
-  storageBucket: "login-15303.firebasestorage.app",
-  messagingSenderId: "403564723749",
-  appId: "1:403564723749:web:e57a87696ccb7e17b049cc",
-  measurementId: "G-NX2PYPDR3G"
+  storageBucket: "login-15303.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
-
-// ✅ ตรงกับ Firestore ของคุณ: collection "config", document "api"
 const CONFIG_DOC = doc(db, "config", "api");
 
-// ===== Provider defaults =====
 const PROVIDERS = {
   openai:     { baseUrl: "https://api.openai.com/v1",            model: "gpt-4o-mini" },
   groq:       { baseUrl: "https://api.groq.com/openai/v1",       model: "llama-3.3-70b-versatile" },
@@ -367,7 +362,6 @@ const PROVIDERS = {
   custom:     { baseUrl: "",                                      model: "" }
 };
 
-// ===== DOM =====
 const $ = (id) => document.getElementById(id);
 const chatEl = $("chat");
 const inputEl = $("input");
@@ -378,7 +372,6 @@ const statusEl = $("status");
 let history = JSON.parse(localStorage.getItem("chat_history") || "[]");
 let isStreaming = false;
 
-// ===== Settings =====
 function setStatus(msg, type = "") {
   statusEl.textContent = msg;
   statusEl.className = "status " + type;
@@ -402,8 +395,9 @@ $("settingsBtn").addEventListener("click", async () => {
     const snap = await getDoc(CONFIG_DOC);
     if (snap.exists()) {
       const d = snap.data();
+      console.log("📦 Loaded from Firestore:", d);  // ✅ debug
       $("provider").value     = (d.provider || "Groq").toLowerCase();
-      $("baseUrl").value      = d.customUrl || "";       // ✅ ตรงกับ field ใน Firestore
+      $("baseUrl").value      = d.customUrl || d.baseUrl || "";
       $("apiKey").value       = d.apiKey || "";
       $("model").value        = d.model || "";
       $("systemPrompt").value = d.systemPrompt || "You are a helpful assistant. ตอบเป็นภาษาไทยเมื่อผู้ใช้พิมพ์ภาษาไทย";
@@ -418,10 +412,10 @@ $("cancelBtn").addEventListener("click", () => modal.classList.remove("show"));
 $("loadBtn").addEventListener("click", async () => {
   try {
     const snap = await getDoc(CONFIG_DOC);
-    if (!snap.exists()) return setStatus("⚠️ ยังไม่มีข้อมูลใน Firestore", "err");
+    if (!snap.exists()) return setStatus("⚠️ ยังไม่มีข้อมูล", "err");
     const d = snap.data();
     $("provider").value     = (d.provider || "Groq").toLowerCase();
-    $("baseUrl").value      = d.customUrl || "";       // ✅ customUrl
+    $("baseUrl").value      = d.customUrl || d.baseUrl || "";
     $("apiKey").value       = d.apiKey || "";
     $("model").value        = d.model || "";
     $("systemPrompt").value = d.systemPrompt || "";
@@ -434,7 +428,7 @@ $("loadBtn").addEventListener("click", async () => {
 $("saveBtn").addEventListener("click", async () => {
   const data = {
     provider:     $("provider").value,
-    customUrl:    $("baseUrl").value.trim(),   // ✅ บันทึกเป็น customUrl
+    customUrl:    $("baseUrl").value.trim(),
     apiKey:       $("apiKey").value.trim(),
     model:        $("model").value.trim(),
     systemPrompt: $("systemPrompt").value.trim(),
@@ -458,7 +452,6 @@ async function loadConfig() {
   return snap.exists() ? snap.data() : null;
 }
 
-// ===== Chat =====
 function renderMessages() {
   chatEl.innerHTML = "";
   if (history.length === 0) {
@@ -511,7 +504,7 @@ function attachChipHandlers() {
 attachChipHandlers();
 
 $("newChatBtn").addEventListener("click", () => {
-  if (history.length && !confirm("เริ่มแชทใหม่? ข้อความเก่าจะหายไป")) return;
+  if (history.length && !confirm("เริ่มแชทใหม่?")) return;
   history = [];
   localStorage.removeItem("chat_history");
   renderMessages();
@@ -543,6 +536,14 @@ async function sendMessage() {
     return;
   }
 
+  // ✅ FIX: ตรวจสอบ model และใช้ fallback
+  const model = (config.model || "").trim();
+  if (!model) {
+    alert("⚠️ ไม่พบ model ใน Firestore!\n\nกรุณาไปที่ Settings → ใส่ Model → บันทึก\n\nหรือตรวจสอบว่า field name ใน Firestore คือ 'model' (ตัวเล็ก ไม่มี space)");
+    $("settingsBtn").click();
+    return;
+  }
+
   appendMessage("user", text);
   inputEl.value = "";
   inputEl.style.height = "auto";
@@ -560,9 +561,21 @@ async function sendMessage() {
     }
     history.forEach(m => messages.push({ role: m.role, content: m.content }));
 
-    // ✅ รองรับทั้ง customUrl และ baseUrl
-    const baseUrl = config.customUrl || config.baseUrl;
-    const url = baseUrl.replace(/\/$/, "") + "/chat/completions";
+    const baseUrl = (config.customUrl || config.baseUrl || "").replace(/\/$/, "");
+    const url = baseUrl + "/chat/completions";
+
+    // ✅ FIX: สร้าง body แบบ explicit เพื่อป้องกัน field หาย
+    const requestBody = {
+      model: model,
+      messages: messages,
+      stream: true
+    };
+
+    console.log("📤 Sending request:", {
+      url,
+      model: requestBody.model,
+      messageCount: messages.length
+    });
 
     const res = await fetch(url, {
       method: "POST",
@@ -570,16 +583,12 @@ async function sendMessage() {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + config.apiKey
       },
-      body: JSON.stringify({
-        model: config.model,
-        messages: messages,
-        stream: true
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 200)}`);
+      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 300)}`);
     }
 
     const reader = res.body.getReader();
@@ -618,7 +627,7 @@ async function sendMessage() {
 
   } catch (e) {
     aiBubble.classList.remove("typing");
-    aiBubble.textContent = "❌ เกิดข้อผิดพลาด: " + e.message;
+    aiBubble.textContent = "❌ " + e.message;
     console.error(e);
   } finally {
     isStreaming = false;
