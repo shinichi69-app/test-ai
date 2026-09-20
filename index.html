@@ -4,497 +4,2542 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>J.A.R.V.I.S - Personal API Assistant</title>
+
 <style>
-    :root {
-        --jarvis-blue: #00f0ff;
-        --jarvis-dark-blue: #005577;
-        --jarvis-gold: #d4af37;
-        --bg-color: #050914;
-        --panel-bg: rgba(10, 25, 47, 0.7);
+:root {
+    --jarvis-blue: #00f0ff;
+    --jarvis-dark-blue: #005577;
+    --jarvis-gold: #d4af37;
+    --bg-color: #050914;
+    --panel-bg: rgba(10, 25, 47, 0.7);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', 'Courier New', monospace;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: #e0e0e0;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* =========================================================
+   BACKGROUND
+========================================================= */
+
+.grid-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    background-image:
+        linear-gradient(rgba(0,240,255,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,240,255,.05) 1px, transparent 1px);
+
+    background-size: 40px 40px;
+    z-index: -5;
+
+    animation: moveGrid 20s linear infinite;
+}
+
+@keyframes moveGrid {
+    from {
+        transform: translateY(0);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', 'Courier New', monospace; }
+    to {
+        transform: translateY(40px);
+    }
+}
 
-    body {
-        background-color: var(--bg-color); color: #e0e0e0;
-        height: 100vh; overflow: hidden;
-        display: flex; justify-content: center; align-items: center;
+/* =========================================================
+   HUD CIRCLE
+========================================================= */
+
+.hud-circle {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+
+    border: 1px solid rgba(0,240,255,.15);
+    border-radius: 50%;
+
+    animation: spin 30s linear infinite;
+
+    z-index: -4;
+}
+
+.hud-circle::before {
+    content: '';
+
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    right: -20px;
+    bottom: -20px;
+
+    border: 2px dashed rgba(0,240,255,.1);
+    border-radius: 50%;
+
+    animation: spinReverse 20s linear infinite;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes spinReverse {
+    100% {
+        transform: rotate(-360deg);
+    }
+}
+
+/* =========================================================
+   PARTICLES
+========================================================= */
+
+.particle-field {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: -3;
+}
+
+.particle {
+    position: absolute;
+
+    width: 2px;
+    height: 2px;
+
+    border-radius: 50%;
+
+    background: var(--jarvis-blue);
+
+    box-shadow:
+        0 0 8px var(--jarvis-blue);
+
+    opacity: .5;
+
+    animation:
+        particleFloat
+        var(--duration)
+        linear
+        infinite;
+
+    animation-delay: var(--delay);
+}
+
+@keyframes particleFloat {
+
+    0% {
+        transform:
+            translate3d(0,110px,0);
+
+        opacity: 0;
     }
 
-    /* ===== พื้นหลังโฮโลแกรม ===== */
-    .grid-background {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        background-image:
-            linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
-        background-size: 40px 40px; z-index: -1;
-        animation: moveGrid 20s linear infinite;
-    }
-    @keyframes moveGrid { from { transform: translateY(0); } to { transform: translateY(40px); } }
-
-    .hud-circle {
-        position: absolute; width: 600px; height: 600px;
-        border: 1px solid rgba(0, 240, 255, 0.15); border-radius: 50%;
-        animation: spin 30s linear infinite; z-index: -1;
-    }
-    .hud-circle::before {
-        content: ''; position: absolute; top: -20px; left: -20px; right: -20px; bottom: -20px;
-        border: 2px dashed rgba(0, 240, 255, 0.1); border-radius: 50%;
-        animation: spinReverse 20s linear infinite;
-    }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
-    @keyframes spinReverse { 100% { transform: rotate(-360deg); } }
-
-    /* ===== โครงหลัก ===== */
-    .jarvis-container {
-        width: 100%; max-width: 900px; height: 92vh;
-        background: var(--panel-bg);
-        border: 1px solid var(--jarvis-dark-blue); border-radius: 20px;
-        box-shadow: 0 0 10px rgba(0, 240, 255, 0.3), inset 0 0 20px rgba(0,0,0,0.5);
-        backdrop-filter: blur(10px);
-        display: flex; flex-direction: column; overflow: hidden; position: relative;
+    15% {
+        opacity: .6;
     }
 
-    header {
-        padding: 15px 30px; border-bottom: 1px solid var(--jarvis-dark-blue);
-        display: flex; justify-content: space-between; align-items: center;
-        background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.05), transparent);
-    }
-    .logo { font-size: 1.4rem; font-weight: bold; color: var(--jarvis-blue); text-shadow: 0 0 10px var(--jarvis-blue); letter-spacing: 4px; }
-    .status { font-size: 0.75rem; color: var(--jarvis-gold); display: flex; align-items: center; gap: 8px; }
-    .status-dot { width: 8px; height: 8px; background: var(--jarvis-gold); border-radius: 50%; box-shadow: 0 0 5px var(--jarvis-gold); animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-
-    /* ===== แถบตั้งค่า API Key ===== */
-    .api-bar {
-        padding: 10px 20px; border-bottom: 1px solid var(--jarvis-dark-blue);
-        display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-        background: rgba(0, 0, 0, 0.25);
-    }
-    .api-bar label { color: var(--jarvis-gold); font-size: 0.75rem; letter-spacing: 1px; white-space: nowrap; }
-    #apiKeyInput {
-        flex: 1; min-width: 150px; background: rgba(0,0,0,0.5);
-        border: 1px solid #333; color: #fff; padding: 8px 10px;
-        border-radius: 4px; font-family: monospace; font-size: 0.85rem; outline: none;
-    }
-    #apiKeyInput:focus { border-color: var(--jarvis-gold); box-shadow: 0 0 8px rgba(212,175,55,0.3); }
-    .mini-btn {
-        background: transparent; border: 1px solid var(--jarvis-dark-blue);
-        color: var(--jarvis-blue); padding: 7px 12px; font-size: 0.7rem;
-        cursor: pointer; border-radius: 4px; letter-spacing: 1px; transition: 0.3s;
-    }
-    .mini-btn:hover { background: rgba(0, 240, 255, 0.15); box-shadow: 0 0 8px rgba(0, 240, 255, 0.3); }
-    .mini-btn.danger { border-color: #772222; color: #ff6666; }
-    .mini-btn.danger:hover { background: rgba(255, 0, 0, 0.15); box-shadow: 0 0 8px rgba(255, 0, 0, 0.3); }
-    #keyStatus { font-size: 0.7rem; letter-spacing: 1px; }
-    #keyStatus.ok { color: var(--jarvis-gold); text-shadow: 0 0 5px var(--jarvis-gold); }
-    #keyStatus.no { color: #ff5555; text-shadow: 0 0 5px #ff5555; }
-    #modelSelect {
-        background: rgba(0,0,0,0.5); border: 1px solid #333; color: var(--jarvis-blue);
-        padding: 7px; border-radius: 4px; font-size: 0.75rem; outline: none; max-width: 260px;
+    85% {
+        opacity: .25;
     }
 
-    /* ===== พื้นที่แชท ===== */
-    .chat-area {
-        flex: 1; padding: 20px; overflow-y: auto;
-        display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth;
+    100% {
+        transform:
+            translate3d(var(--drift),-110vh,0);
+
+        opacity: 0;
     }
-    .chat-area::-webkit-scrollbar { width: 4px; }
-    .chat-area::-webkit-scrollbar-thumb { background: var(--jarvis-dark-blue); border-radius: 2px; }
+}
 
-    .message { max-width: 80%; animation: fadeIn 0.4s ease-out; }
-    .message.user { align-self: flex-end; text-align: right; }
-    .message.jarvis { align-self: flex-start; }
+/* =========================================================
+   AI CORE
+========================================================= */
 
-    .msg-header { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; font-weight: bold; }
-    .user .msg-header { color: #fff; }
-    .jarvis .msg-header { color: var(--jarvis-blue); text-shadow: 0 0 5px var(--jarvis-blue); }
+.ai-core {
+    position: absolute;
 
-    .msg-content { padding: 15px; border-radius: 4px; font-size: 0.95rem; line-height: 1.5; }
-    .user .msg-content { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-top-right-radius: 0; }
-    .jarvis .msg-content { background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.3); color: #cceeff; border-top-left-radius: 0; box-shadow: 0 0 10px rgba(0,240,255,0.3); }
+    left: 50%;
+    top: 50%;
 
-    .error .msg-content { border-color: #ff3333 !important; color: #ff6666 !important; background: rgba(255,0,0,0.05) !important; }
-    .error .msg-header { color: #ff3333 !important; text-shadow: 0 0 5px #ff3333 !important; }
+    width: 360px;
+    height: 360px;
 
-    pre { background: #000; color: #0f0; padding: 10px; border-radius: 4px; overflow-x: auto; margin-top: 10px; border: 1px solid #333; font-family: 'Courier New', monospace; font-size: 0.85rem; }
-    code { background: rgba(0,240,255,0.1); color: var(--jarvis-blue); padding: 1px 5px; border-radius: 3px; font-family: monospace; }
+    transform:
+        translate(-50%,-50%);
 
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    pointer-events: none;
 
-    /* ===== แถบป้อนคำสั่ง ===== */
+    z-index: -2;
+
+    opacity: .58;
+
+    filter:
+        drop-shadow(
+            0 0 18px
+            rgba(0,240,255,.22)
+        );
+
+    transition:
+        opacity .4s,
+        transform .4s;
+}
+
+.core-ring {
+    position: absolute;
+
+    inset: 0;
+
+    border-radius: 50%;
+
+    border:
+        1px solid
+        rgba(0,240,255,.28);
+}
+
+.ring-a {
+    animation:
+        coreSpin
+        18s
+        linear
+        infinite;
+}
+
+.ring-b {
+    inset: 24px;
+
+    border-style: dashed;
+
+    border-color:
+        rgba(212,175,55,.32);
+
+    animation:
+        coreSpinReverse
+        13s
+        linear
+        infinite;
+}
+
+.ring-c {
+    inset: 58px;
+
+    border-width: 2px;
+
+    border-color:
+        rgba(0,240,255,.18);
+
+    box-shadow:
+        inset 0 0 25px
+        rgba(0,240,255,.12);
+
+    animation:
+        corePulse
+        3.2s
+        ease-in-out
+        infinite;
+}
+
+.core-center {
+    position: absolute;
+
+    inset: 112px;
+
+    display: grid;
+
+    place-items: center;
+
+    border:
+        1px solid
+        rgba(0,240,255,.5);
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(0,240,255,.18),
+            rgba(0,10,25,.05) 65%,
+            transparent
+        );
+
+    box-shadow:
+        0 0 35px
+        rgba(0,240,255,.22),
+
+        inset 0 0 25px
+        rgba(0,240,255,.18);
+
+    animation:
+        coreBreath
+        2.8s
+        ease-in-out
+        infinite;
+}
+
+.core-center span {
+    font-size: 4rem;
+
+    font-weight: 800;
+
+    color:
+        var(--jarvis-blue);
+
+    text-shadow:
+        0 0 20px
+        var(--jarvis-blue);
+}
+
+.core-label {
+    position: absolute;
+
+    bottom: 24px;
+
+    width: 100%;
+
+    text-align: center;
+
+    color:
+        rgba(0,240,255,.55);
+
+    font-size: 9px;
+
+    letter-spacing: 4px;
+}
+
+@keyframes coreSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes coreSpinReverse {
+    to {
+        transform: rotate(-360deg);
+    }
+}
+
+@keyframes corePulse {
+
+    0%,
+    100% {
+        opacity: .35;
+        transform: scale(.96);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.04);
+    }
+}
+
+@keyframes coreBreath {
+
+    0%,
+    100% {
+        transform: scale(.96);
+
+        box-shadow:
+            0 0 20px
+            rgba(0,240,255,.16),
+
+            inset 0 0 20px
+            rgba(0,240,255,.12);
+    }
+
+    50% {
+        transform: scale(1.04);
+
+        box-shadow:
+            0 0 55px
+            rgba(0,240,255,.42),
+
+            inset 0 0 35px
+            rgba(0,240,255,.25);
+    }
+}
+
+/* =========================================================
+   MAIN CONTAINER
+========================================================= */
+
+.jarvis-container {
+
+    width: 100%;
+    max-width: 900px;
+
+    height: 92vh;
+
+    background:
+        var(--panel-bg);
+
+    border:
+        1px solid
+        var(--jarvis-dark-blue);
+
+    border-radius: 20px;
+
+    box-shadow:
+        0 0 10px
+        rgba(0,240,255,.3),
+
+        inset 0 0 20px
+        rgba(0,0,0,.5);
+
+    backdrop-filter:
+        blur(10px);
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    overflow:
+        hidden;
+
+    position:
+        relative;
+
+    transition:
+        box-shadow .4s;
+}
+
+/* scanline */
+
+.jarvis-container::before {
+
+    content: '';
+
+    position: absolute;
+
+    inset: 0;
+
+    pointer-events: none;
+
+    z-index: 20;
+
+    background:
+        linear-gradient(
+            transparent 0%,
+            rgba(0,240,255,.025) 50%,
+            transparent 100%
+        );
+
+    background-size:
+        100% 8px;
+
+    opacity: .35;
+
+    animation:
+        scanline
+        9s
+        linear
+        infinite;
+}
+
+@keyframes scanline {
+
+    0% {
+        transform:
+            translateY(-100%);
+    }
+
+    100% {
+        transform:
+            translateY(100%);
+    }
+}
+
+/* =========================================================
+   PROCESSING MODE
+========================================================= */
+
+.jarvis-container.active-processing {
+
+    box-shadow:
+
+        0 0 25px
+        rgba(0,240,255,.5),
+
+        inset 0 0 30px
+        rgba(0,240,255,.08);
+}
+
+.jarvis-container.active-processing
+.ai-core {
+
+    opacity: .95;
+
+    transform:
+        translate(-50%,-50%)
+        scale(1.05);
+}
+
+.jarvis-container.active-processing
+.ring-a {
+
+    animation-duration:
+        5s;
+}
+
+.jarvis-container.active-processing
+.ring-b {
+
+    animation-duration:
+        3s;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+header {
+
+    padding:
+        15px 30px;
+
+    border-bottom:
+        1px solid
+        var(--jarvis-dark-blue);
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            rgba(0,240,255,.05),
+            transparent
+        );
+}
+
+.logo {
+
+    font-size:
+        1.4rem;
+
+    font-weight:
+        bold;
+
+    color:
+        var(--jarvis-blue);
+
+    text-shadow:
+        0 0 10px
+        var(--jarvis-blue);
+
+    letter-spacing:
+        4px;
+}
+
+.status {
+
+    font-size:
+        .75rem;
+
+    color:
+        var(--jarvis-gold);
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        8px;
+}
+
+.status-dot {
+
+    width:
+        8px;
+
+    height:
+        8px;
+
+    background:
+        var(--jarvis-gold);
+
+    border-radius:
+        50%;
+
+    box-shadow:
+        0 0 5px
+        var(--jarvis-gold);
+
+    animation:
+        pulse
+        2s
+        infinite;
+}
+
+@keyframes pulse {
+
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: .3;
+        transform: scale(.7);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* =========================================================
+   API BAR
+========================================================= */
+
+.api-bar {
+
+    padding:
+        10px 20px;
+
+    border-bottom:
+        1px solid
+        var(--jarvis-dark-blue);
+
+    display:
+        flex;
+
+    gap:
+        10px;
+
+    align-items:
+        center;
+
+    flex-wrap:
+        wrap;
+
+    background:
+        rgba(0,0,0,.25);
+}
+
+.api-bar label {
+
+    color:
+        var(--jarvis-gold);
+
+    font-size:
+        .75rem;
+
+    letter-spacing:
+        1px;
+
+    white-space:
+        nowrap;
+}
+
+#apiKeyInput {
+
+    flex: 1;
+
+    min-width:
+        150px;
+
+    background:
+        rgba(0,0,0,.5);
+
+    border:
+        1px solid #333;
+
+    color:
+        #fff;
+
+    padding:
+        8px 10px;
+
+    border-radius:
+        4px;
+
+    font-family:
+        monospace;
+
+    font-size:
+        .85rem;
+
+    outline:
+        none;
+}
+
+#apiKeyInput:focus {
+
+    border-color:
+        var(--jarvis-gold);
+
+    box-shadow:
+        0 0 8px
+        rgba(212,175,55,.3);
+}
+
+.mini-btn {
+
+    background:
+        transparent;
+
+    border:
+        1px solid
+        var(--jarvis-dark-blue);
+
+    color:
+        var(--jarvis-blue);
+
+    padding:
+        7px 12px;
+
+    font-size:
+        .7rem;
+
+    cursor:
+        pointer;
+
+    border-radius:
+        4px;
+
+    letter-spacing:
+        1px;
+
+    transition:
+        .3s;
+}
+
+.mini-btn:hover {
+
+    background:
+        rgba(0,240,255,.15);
+
+    box-shadow:
+        0 0 8px
+        rgba(0,240,255,.3);
+
+    transform:
+        translateY(-1px);
+}
+
+.mini-btn.danger {
+
+    border-color:
+        #772222;
+
+    color:
+        #ff6666;
+}
+
+.mini-btn.danger:hover {
+
+    background:
+        rgba(255,0,0,.15);
+
+    box-shadow:
+        0 0 8px
+        rgba(255,0,0,.3);
+}
+
+#keyStatus {
+
+    font-size:
+        .7rem;
+
+    letter-spacing:
+        1px;
+}
+
+#keyStatus.ok {
+
+    color:
+        var(--jarvis-gold);
+
+    text-shadow:
+        0 0 5px
+        var(--jarvis-gold);
+}
+
+#keyStatus.no {
+
+    color:
+        #ff5555;
+
+    text-shadow:
+        0 0 5px
+        #ff5555;
+}
+
+#modelSelect {
+
+    background:
+        rgba(0,0,0,.5);
+
+    border:
+        1px solid #333;
+
+    color:
+        var(--jarvis-blue);
+
+    padding:
+        7px;
+
+    border-radius:
+        4px;
+
+    font-size:
+        .75rem;
+
+    outline:
+        none;
+}
+
+/* =========================================================
+   CHAT
+========================================================= */
+
+.chat-area {
+
+    flex: 1;
+
+    padding:
+        20px;
+
+    overflow-y:
+        auto;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        20px;
+
+    scroll-behavior:
+        smooth;
+}
+
+.chat-area::-webkit-scrollbar {
+
+    width:
+        4px;
+}
+
+.chat-area::-webkit-scrollbar-thumb {
+
+    background:
+        var(--jarvis-dark-blue);
+
+    border-radius:
+        2px;
+}
+
+.message {
+
+    max-width:
+        80%;
+
+    animation:
+        fadeIn
+        .4s
+        ease-out;
+}
+
+.message.user {
+
+    align-self:
+        flex-end;
+
+    text-align:
+        right;
+}
+
+.message.jarvis {
+
+    align-self:
+        flex-start;
+}
+
+.msg-header {
+
+    font-size:
+        .7rem;
+
+    text-transform:
+        uppercase;
+
+    letter-spacing:
+        2px;
+
+    margin-bottom:
+        5px;
+
+    font-weight:
+        bold;
+}
+
+.user .msg-header {
+
+    color:
+        #fff;
+}
+
+.jarvis .msg-header {
+
+    color:
+        var(--jarvis-blue);
+
+    text-shadow:
+        0 0 5px
+        var(--jarvis-blue);
+}
+
+.msg-content {
+
+    padding:
+        15px;
+
+    border-radius:
+        4px;
+
+    font-size:
+        .95rem;
+
+    line-height:
+        1.5;
+}
+
+.user .msg-content {
+
+    background:
+        rgba(255,255,255,.1);
+
+    border:
+        1px solid
+        rgba(255,255,255,.2);
+
+    color:
+        #fff;
+
+    border-top-right-radius:
+        0;
+}
+
+.jarvis .msg-content {
+
+    background:
+        rgba(0,240,255,.05);
+
+    border:
+        1px solid
+        rgba(0,240,255,.3);
+
+    color:
+        #cceeff;
+
+    border-top-left-radius:
+        0;
+
+    box-shadow:
+        0 0 10px
+        rgba(0,240,255,.3);
+
+    position:
+        relative;
+
+    overflow:
+        hidden;
+}
+
+.jarvis .msg-content::after {
+
+    content:
+        '';
+
+    position:
+        absolute;
+
+    top:
+        0;
+
+    left:
+        -120%;
+
+    width:
+        70%;
+
+    height:
+        100%;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            rgba(0,240,255,.12),
+            transparent
+        );
+
+    animation:
+        messageScan
+        5s
+        ease-in-out
+        infinite;
+
+    pointer-events:
+        none;
+}
+
+@keyframes messageScan {
+
+    0%,
+    65% {
+        left:
+            -120%;
+    }
+
+    85%,
+    100% {
+        left:
+            140%;
+    }
+}
+
+.error .msg-content {
+
+    border-color:
+        #ff3333 !important;
+
+    color:
+        #ff6666 !important;
+
+    background:
+        rgba(255,0,0,.05) !important;
+}
+
+.error .msg-header {
+
+    color:
+        #ff3333 !important;
+
+    text-shadow:
+        0 0 5px
+        #ff3333 !important;
+}
+
+pre {
+
+    background:
+        #000;
+
+    color:
+        #0f0;
+
+    padding:
+        10px;
+
+    border-radius:
+        4px;
+
+    overflow-x:
+        auto;
+
+    margin-top:
+        10px;
+
+    border:
+        1px solid #333;
+
+    font-family:
+        'Courier New',
+        monospace;
+
+    font-size:
+        .85rem;
+}
+
+code {
+
+    background:
+        rgba(0,240,255,.1);
+
+    color:
+        var(--jarvis-blue);
+
+    padding:
+        1px 5px;
+
+    border-radius:
+        3px;
+
+    font-family:
+        monospace;
+}
+
+@keyframes fadeIn {
+
+    from {
+
+        opacity:
+            0;
+
+        transform:
+            translateY(10px)
+            scale(.98);
+    }
+
+    to {
+
+        opacity:
+            1;
+
+        transform:
+            translateY(0)
+            scale(1);
+    }
+}
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+.input-area {
+
+    padding:
+        20px;
+
+    border-top:
+        1px solid
+        var(--jarvis-dark-blue);
+
+    background:
+        rgba(0,0,0,.3);
+
+    display:
+        flex;
+
+    gap:
+        15px;
+
+    align-items:
+        center;
+}
+
+#userInput {
+
+    flex:
+        1;
+
+    background:
+        rgba(0,20,40,.6);
+
+    border:
+        1px solid
+        var(--jarvis-dark-blue);
+
+    color:
+        var(--jarvis-blue);
+
+    padding:
+        15px;
+
+    font-size:
+        1rem;
+
+    border-radius:
+        4px;
+
+    outline:
+        none;
+
+    transition:
+        all .3s;
+
+    font-family:
+        inherit;
+}
+
+#userInput:focus {
+
+    border-color:
+        var(--jarvis-blue);
+
+    box-shadow:
+        0 0 15px
+        rgba(0,240,255,.2);
+}
+
+#userInput::placeholder {
+
+    color:
+        rgba(0,240,255,.4);
+}
+
+#sendBtn {
+
+    background:
+        transparent;
+
+    border:
+        1px solid
+        var(--jarvis-blue);
+
+    color:
+        var(--jarvis-blue);
+
+    padding:
+        14px 25px;
+
+    font-size:
+        1rem;
+
+    cursor:
+        pointer;
+
+    border-radius:
+        4px;
+
+    text-transform:
+        uppercase;
+
+    letter-spacing:
+        2px;
+
+    font-weight:
+        bold;
+
+    transition:
+        all .3s;
+}
+
+#sendBtn:hover {
+
+    background:
+        var(--jarvis-blue);
+
+    color:
+        var(--bg-color);
+
+    box-shadow:
+        0 0 20px
+        var(--jarvis-blue);
+
+    transform:
+        translateY(-2px);
+}
+
+#sendBtn:active {
+
+    transform:
+        scale(.95);
+}
+
+#sendBtn:disabled {
+
+    border-color:
+        #333;
+
+    color:
+        #333;
+
+    cursor:
+        not-allowed;
+
+    background:
+        transparent;
+
+    box-shadow:
+        none;
+}
+
+/* =========================================================
+   TYPING
+========================================================= */
+
+.typing span {
+
+    display:
+        inline-block;
+
+    width:
+        6px;
+
+    height:
+        6px;
+
+    background:
+        var(--jarvis-blue);
+
+    border-radius:
+        50%;
+
+    margin:
+        0 2px;
+
+    animation:
+        bounce
+        1.4s
+        infinite
+        ease-in-out
+        both;
+
+    box-shadow:
+        0 0 5px
+        var(--jarvis-blue);
+}
+
+.typing span:nth-child(1) {
+
+    animation-delay:
+        -.32s;
+}
+
+.typing span:nth-child(2) {
+
+    animation-delay:
+        -.16s;
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+
+        transform:
+            scale(0);
+    }
+
+    40% {
+
+        transform:
+            scale(1);
+    }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width:600px) {
+
     .input-area {
-        padding: 20px; border-top: 1px solid var(--jarvis-dark-blue);
-        background: rgba(0,0,0,0.3); display: flex; gap: 15px; align-items: center;
+
+        flex-direction:
+            column;
     }
-    #userInput {
-        flex: 1; background: rgba(0, 20, 40, 0.6); border: 1px solid var(--jarvis-dark-blue);
-        color: var(--jarvis-blue); padding: 15px; font-size: 1rem; border-radius: 4px;
-        outline: none; transition: all 0.3s; font-family: inherit;
-    }
-    #userInput:focus { border-color: var(--jarvis-blue); box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
-    #userInput::placeholder { color: rgba(0, 240, 255, 0.4); }
 
     #sendBtn {
-        background: transparent; border: 1px solid var(--jarvis-blue); color: var(--jarvis-blue);
-        padding: 14px 25px; font-size: 1rem; cursor: pointer; border-radius: 4px;
-        text-transform: uppercase; letter-spacing: 2px; font-weight: bold; transition: all 0.3s;
-    }
-    #sendBtn:hover { background: var(--jarvis-blue); color: var(--bg-color); box-shadow: 0 0 20px var(--jarvis-blue); }
-    #sendBtn:disabled { border-color: #333; color: #333; cursor: not-allowed; background: transparent; box-shadow: none; }
 
-    .typing span { display: inline-block; width: 6px; height: 6px; background: var(--jarvis-blue); border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; box-shadow: 0 0 5px var(--jarvis-blue); }
-    .typing span:nth-child(1) { animation-delay: -0.32s; }
-    .typing span:nth-child(2) { animation-delay: -0.16s; }
-    @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-
-    @media (max-width: 600px) {
-        .input-area { flex-direction: column; }
-        #sendBtn { width: 100%; }
-        .message { max-width: 95%; }
-        #modelSelect { max-width: 100%; }
+        width:
+            100%;
     }
+
+    .message {
+
+        max-width:
+            95%;
+    }
+
+    .ai-core {
+
+        width:
+            260px;
+
+        height:
+            260px;
+
+        opacity:
+            .32;
+    }
+
+    .core-center {
+
+        inset:
+            82px;
+    }
+
+    .core-center span {
+
+        font-size:
+            3rem;
+    }
+
+    .core-label {
+
+        bottom:
+            14px;
+    }
+}
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion:reduce) {
+
+    *,
+    *::before,
+    *::after {
+
+        animation-duration:
+            .001ms !important;
+
+        animation-iteration-count:
+            1 !important;
+
+        scroll-behavior:
+            auto !important;
+    }
+}
 </style>
 </head>
+
 <body>
 
 <div class="grid-background"></div>
+
 <div class="hud-circle"></div>
 
+<div class="particle-field"
+     id="particleField"
+     aria-hidden="true">
+</div>
+
+<!-- AI CORE -->
+<div class="ai-core"
+     id="aiCore"
+     aria-hidden="true">
+
+    <div class="core-ring ring-a"></div>
+    <div class="core-ring ring-b"></div>
+    <div class="core-ring ring-c"></div>
+
+    <div class="core-center">
+        <span>J</span>
+    </div>
+
+    <div class="core-label">
+        NEURAL CORE
+    </div>
+
+</div>
+
 <div class="jarvis-container">
-    <header>
-        <div class="logo">J.A.R.V.I.S</div>
-        <div class="status"><div class="status-dot"></div> SYSTEM ONLINE</div>
-    </header>
 
-    <!-- 🔐 แถบตั้งค่า: Key เก็บใน LocalStorage เท่านั้น ไม่ฝังในโค้ด -->
-    <div class="api-bar">
-        <label>🔑 API KEY:</label>
-        <input type="password" id="apiKeyInput" placeholder="วาง Groq API Key (gsk_...) ที่นี่" autocomplete="off">
-        <button class="mini-btn" onclick="saveApiKey()">SAVE</button>
-        <button class="mini-btn danger" onclick="clearApiKey()">DELETE</button>
-        <span id="keyStatus" class="no">● ยังไม่ได้ตั้งค่า KEY</span>
-        <select id="modelSelect" title="เลือกโมเดล AI">
-            <option value="">⏳ กำลังรอ API Key...</option>
-        </select>
-        <button class="mini-btn" id="ttsBtn" onclick="toggleTTS()">🔊 VOICE</button>
+<header>
+
+    <div class="logo">
+        J.A.R.V.I.S
     </div>
 
-    <div class="chat-area" id="chatArea"></div>
+    <div class="status">
 
-    <div class="input-area">
-        <input type="text" id="userInput" placeholder="พิมพ์คำถาม สั่งงาน AI หรือวาง URL API เพื่อทดสอบ..." autocomplete="off">
-        <button id="sendBtn" onclick="processCommand()">Execute</button>
+        <div class="status-dot"></div>
+
+        <span id="systemStatus">
+            SYSTEM ONLINE
+        </span>
+
     </div>
+
+</header>
+
+<!-- API BAR -->
+
+<div class="api-bar">
+
+    <label>
+        🔑 API KEY:
+    </label>
+
+    <input
+        type="password"
+        id="apiKeyInput"
+        placeholder="วาง Groq API Key (gsk_...) ที่นี่"
+        autocomplete="off"
+    >
+
+    <button
+        class="mini-btn"
+        onclick="saveApiKey()">
+        SAVE
+    </button>
+
+    <button
+        class="mini-btn danger"
+        onclick="clearApiKey()">
+        DELETE
+    </button>
+
+    <span
+        id="keyStatus"
+        class="no">
+        ● ยังไม่ได้ตั้งค่า KEY
+    </span>
+
+    <select
+        id="modelSelect"
+        title="เลือกโมเดล AI">
+
+        <option value="llama-3.3-70b-versatile">
+            llama-3.3-70b-versatile
+        </option>
+
+        <option value="llama-3.1-8b-instant">
+            llama-3.1-8b-instant
+        </option>
+
+    </select>
+
+    <button
+        class="mini-btn"
+        id="ttsBtn"
+        onclick="toggleTTS()">
+
+        🔊 VOICE
+
+    </button>
+
+</div>
+
+<!-- CHAT -->
+
+<div
+    class="chat-area"
+    id="chatArea">
+</div>
+
+<!-- INPUT -->
+
+<div class="input-area">
+
+    <input
+        type="text"
+        id="userInput"
+        placeholder="พิมพ์คำถาม สั่งงาน AI หรือวาง URL API เพื่อทดสอบ..."
+        autocomplete="off"
+    >
+
+    <button
+        id="sendBtn"
+        onclick="processCommand()">
+
+        Execute
+
+    </button>
+
+</div>
+
 </div>
 
 <script>
-    const chatArea    = document.getElementById('chatArea');
-    const userInput   = document.getElementById('userInput');
-    const sendBtn     = document.getElementById('sendBtn');
-    const apiKeyInput = document.getElementById('apiKeyInput');
-    const keyStatus   = document.getElementById('keyStatus');
-    const modelSelect = document.getElementById('modelSelect');
-    const ttsBtn      = document.getElementById('ttsBtn');
 
-    // 🧠 บุคลิกของจาร์วิส (แก้ไขได้ตามใจ)
-    const SYSTEM_PROMPT = "คุณคือ J.A.R.V.I.S. ผู้ช่วยส่วนตัวอัจฉริยะประจำเว็บไซต์ พูดจาสุภาพแบบพ่อบ้านผู้ชาญฉลาด ตอบเป็นภาษาไทย กระชับ ได้ใจความ และเรียกผู้ใช้ว่า 'ท่าน'";
+/* =========================================================
+   ELEMENTS
+========================================================= */
 
-    // 📦 รายชื่อโมเดลสำรอง (ใช้เมื่อโหลดจากเซิร์ฟเวอร์ไม่สำเร็จ)
-    const FALLBACK_MODELS = [
-        'openai/gpt-oss-120b',
-        'openai/gpt-oss-20b',
-        'llama-3.3-70b-specdec',
-        'meta-llama/llama-4-scout-17b-16e-instruct',
-        'meta-llama/llama-4-maverick-17b-128e-instruct',
-        'deepseek-r1-distill-llama-70b',
-        'qwen/qwen3-32b',
-        'moonshotai/kimi-k2-instruct'
-    ];
+const chatArea =
+    document.getElementById('chatArea');
 
-    let conversationHistory = [];   // หน่วยความจำการสนทนา
-    let ttsEnabled = true;
+const userInput =
+    document.getElementById('userInput');
 
-    /* ================= 🔊 ระบบเสียงพูด (Text-to-Speech) ================= */
-    const synth = window.speechSynthesis;
-    function speak(text) {
-        if (!ttsEnabled || !synth) return;
+const sendBtn =
+    document.getElementById('sendBtn');
+
+const apiKeyInput =
+    document.getElementById('apiKeyInput');
+
+const keyStatus =
+    document.getElementById('keyStatus');
+
+const modelSelect =
+    document.getElementById('modelSelect');
+
+const ttsBtn =
+    document.getElementById('ttsBtn');
+
+const appShell =
+    document.querySelector('.jarvis-container');
+
+const systemStatus =
+    document.getElementById('systemStatus');
+
+const particleField =
+    document.getElementById('particleField');
+
+
+/* =========================================================
+   JARVIS PERSONALITY
+========================================================= */
+
+const SYSTEM_PROMPT =
+    "คุณคือ J.A.R.V.I.S. ผู้ช่วยส่วนตัวอัจฉริยะประจำเว็บไซต์ " +
+    "พูดจาสุภาพแบบพ่อบ้านผู้ชาญฉลาด ตอบเป็นภาษาไทย กระชับ ได้ใจความ " +
+    "และเรียกผู้ใช้ว่า 'ท่าน'";
+
+
+/* =========================================================
+   CONVERSATION
+========================================================= */
+
+let conversationHistory = [];
+
+let ttsEnabled = true;
+
+
+/* =========================================================
+   PARTICLES
+========================================================= */
+
+const particleCount =
+    window.matchMedia('(max-width:600px)').matches
+        ? 18
+        : 34;
+
+for (
+    let i = 0;
+    i < particleCount;
+    i++
+) {
+
+    const p =
+        document.createElement('span');
+
+    p.className =
+        'particle';
+
+    p.style.left =
+        Math.random() * 100 + '%';
+
+    p.style.top =
+        (65 + Math.random() * 40) + '%';
+
+    p.style.setProperty(
+        '--duration',
+        (10 + Math.random() * 18) + 's'
+    );
+
+    p.style.setProperty(
+        '--delay',
+        (-Math.random() * 18) + 's'
+    );
+
+    p.style.setProperty(
+        '--drift',
+        ((Math.random() - .5) * 180) + 'px'
+    );
+
+    particleField.appendChild(p);
+}
+
+
+/* =========================================================
+   PROCESSING VISUAL STATE
+========================================================= */
+
+function setProcessing(active) {
+
+    if (appShell) {
+
+        appShell.classList.toggle(
+            'active-processing',
+            !!active
+        );
+    }
+
+    const dot =
+        document.querySelector('.status-dot');
+
+    if (dot) {
+
+        if (active) {
+
+            dot.style.background =
+                'var(--jarvis-blue)';
+
+            dot.style.boxShadow =
+                '0 0 14px var(--jarvis-blue)';
+
+        } else {
+
+            dot.style.background =
+                'var(--jarvis-gold)';
+
+            dot.style.boxShadow =
+                '0 0 5px var(--jarvis-gold)';
+        }
+    }
+
+    if (systemStatus) {
+
+        systemStatus.textContent =
+            active
+                ? 'SYSTEM PROCESSING'
+                : 'SYSTEM ONLINE';
+    }
+}
+
+
+/* =========================================================
+   VOICE
+========================================================= */
+
+const synth =
+    window.speechSynthesis;
+
+function speak(text) {
+
+    if (!ttsEnabled || !synth)
+        return;
+
+    synth.cancel();
+
+    const u =
+        new SpeechSynthesisUtterance(text);
+
+    u.lang =
+        'th-TH';
+
+    u.rate =
+        1.0;
+
+    u.pitch =
+        .9;
+
+    synth.speak(u);
+}
+
+function toggleTTS() {
+
+    ttsEnabled =
+        !ttsEnabled;
+
+    ttsBtn.textContent =
+        ttsEnabled
+            ? '🔊 VOICE'
+            : '🔇 MUTED';
+
+    if (!ttsEnabled && synth)
         synth.cancel();
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'th-TH'; u.rate = 1.0; u.pitch = 0.9;
-        synth.speak(u);
-    }
-    function toggleTTS() {
-        ttsEnabled = !ttsEnabled;
-        ttsBtn.textContent = ttsEnabled ? '🔊 VOICE' : '🔇 MUTED';
-        if (!ttsEnabled && synth) synth.cancel();
-    }
+}
 
-    /* =================  ตัวช่วยจัดรูปแบบข้อความ ================= */
-    function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-    function stripHtml(html) { const d = document.createElement('div'); d.innerHTML = html; return d.textContent || ''; }
-    function formatAI(t) {
-        let s = escapeHtml(t);
-        s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
-        s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
-        s = s.replace(/\n/g, '<br>');
-        return s;
-    }
 
-    function addMessage(text, sender, isJson = false, isError = false) {
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message', sender);
-        if (isError) msgDiv.classList.add('error');
+/* =========================================================
+   TEXT FORMAT
+========================================================= */
 
-        const header = document.createElement('div');
-        header.classList.add('msg-header');
-        header.innerText = sender === 'user' ? 'YOU' : 'J.A.R.V.I.S';
+function escapeHtml(t) {
 
-        const content = document.createElement('div');
-        content.classList.add('msg-content');
+    const d =
+        document.createElement('div');
 
-        if (isJson) {
-            const pre = document.createElement('pre');
-            pre.textContent = text;
-            content.appendChild(pre);
-        } else {
-            content.innerHTML = text;
-        }
+    d.textContent =
+        t;
 
-        msgDiv.appendChild(header);
-        msgDiv.appendChild(content);
-        chatArea.appendChild(msgDiv);
-        chatArea.scrollTop = chatArea.scrollHeight;
+    return d.innerHTML;
+}
 
-        if (sender === 'jarvis' && !isJson && !isError) speak(stripHtml(text));
-    }
+function stripHtml(html) {
 
-    function showTyping() {
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message', 'jarvis');
-        msgDiv.id = 'typingIndicator';
-        msgDiv.innerHTML = `
-            <div class="msg-header">J.A.R.V.I.S</div>
-            <div class="msg-content typing"><span></span><span></span><span></span></div>`;
-        chatArea.appendChild(msgDiv);
-        chatArea.scrollTop = chatArea.scrollHeight;
-    }
-    function hideTyping() {
-        const el = document.getElementById('typingIndicator');
-        if (el) el.remove();
-    }
+    const d =
+        document.createElement('div');
 
-    /* ================= 🔐 จัดการ API Key (LocalStorage) ================= */
-    async function saveApiKey() {
-        const k = apiKeyInput.value.trim();
-        if (!k) { addMessage("กรุณาวาง API Key ก่อนบันทึกครับท่าน", 'jarvis', false, true); return; }
-        localStorage.setItem('jarvis_groq_key', k);
-        apiKeyInput.value = '';
-        updateKeyStatus();
-        addMessage("บันทึก API Key เรียบร้อยครับ กำลังซิงค์รายชื่อโมเดลล่าสุด...", 'jarvis');
-        await loadAvailableModels(true);
-    }
-    function clearApiKey() {
-        localStorage.removeItem('jarvis_groq_key');
-        localStorage.removeItem('jarvis_last_model');
-        updateKeyStatus();
-        modelSelect.innerHTML = '<option value="">⏳ กำลังรอ API Key...</option>';
-        addMessage("ลบ API Key ออกจากระบบแล้วครับ", 'jarvis');
-    }
-    function updateKeyStatus() {
-        if (localStorage.getItem('jarvis_groq_key')) {
-            keyStatus.textContent = '● KEY พร้อมใช้งาน';
-            keyStatus.className = 'ok';
-        } else {
-            keyStatus.textContent = '● ยังไม่ได้ตั้งค่า KEY';
-            keyStatus.className = 'no';
-        }
-    }
+    d.innerHTML =
+        html;
 
-    /* ================= 🔄 โหลดรายชื่อโมเดลจาก Groq อัตโนมัติ ================= */
-    function populateModelSelect(models) {
-        const saved = localStorage.getItem('jarvis_last_model') || '';
-        modelSelect.innerHTML = models
-            .map(id => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`)
-            .join('');
-        modelSelect.value = (saved && models.includes(saved)) ? saved : models[0];
-    }
+    return d.textContent || '';
+}
 
-    async function loadAvailableModels(showChatMsg) {
-        const apiKey = localStorage.getItem('jarvis_groq_key');
-        if (!apiKey) { populateModelSelect(FALLBACK_MODELS); return; }
+function formatAI(t) {
 
-        try {
-            const res = await fetch('https://api.groq.com/openai/v1/models', {
-                headers: { 'Authorization': `Bearer ${apiKey}` }
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
+    let s =
+        escapeHtml(t);
 
-            const chatModels = (data.data || [])
-                .map(m => m.id)
-                .filter(id => id && !/whisper|tts|guard|moderation/i.test(id))
-                .sort();
+    s =
+        s.replace(
+            /\*\*(.+?)\*\*/g,
+            '<b>$1</b>'
+        );
 
-            if (chatModels.length === 0) throw new Error('ไม่พบโมเดลในบัญชีนี้');
+    s =
+        s.replace(
+            /`([^`]+)`/g,
+            '<code>$1</code>'
+        );
 
-            populateModelSelect(chatModels);
-            if (showChatMsg) addMessage(`ซิงค์รายชื่อโมเดลสำเร็จ พบ ${chatModels.length} โมเดลพร้อมใช้งานครับท่าน`, 'jarvis');
-        } catch (err) {
-            populateModelSelect(FALLBACK_MODELS);
-            if (showChatMsg) addMessage(`โหลดรายการโมเดลจากเซิร์ฟเวอร์ไม่สำเร็จ (${escapeHtml(err.message)}) — ใช้รายชื่อสำรองแทนครับท่าน`, 'jarvis', false, true);
-        }
+    s =
+        s.replace(
+            /\n/g,
+            '<br>'
+        );
+
+    return s;
+}
+
+
+/* =========================================================
+   ADD MESSAGE
+========================================================= */
+
+function addMessage(
+    text,
+    sender,
+    isJson = false,
+    isError = false
+) {
+
+    const msgDiv =
+        document.createElement('div');
+
+    msgDiv.classList.add(
+        'message',
+        sender
+    );
+
+    if (isError)
+        msgDiv.classList.add('error');
+
+
+    const header =
+        document.createElement('div');
+
+    header.classList.add(
+        'msg-header'
+    );
+
+    header.innerText =
+        sender === 'user'
+            ? 'YOU'
+            : 'J.A.R.V.I.S';
+
+
+    const content =
+        document.createElement('div');
+
+    content.classList.add(
+        'msg-content'
+    );
+
+
+    if (isJson) {
+
+        const pre =
+            document.createElement('pre');
+
+        pre.textContent =
+            text;
+
+        content.appendChild(pre);
+
+    } else {
+
+        content.innerHTML =
+            text;
     }
 
-    // จดจำโมเดลที่ผู้ใช้เลือกล่าสุด
-    modelSelect.addEventListener('change', () => {
-        localStorage.setItem('jarvis_last_model', modelSelect.value);
+
+    msgDiv.appendChild(header);
+
+    msgDiv.appendChild(content);
+
+    chatArea.appendChild(msgDiv);
+
+
+    chatArea.scrollTop =
+        chatArea.scrollHeight;
+
+
+    if (
+        sender === 'jarvis' &&
+        !isJson &&
+        !isError
+    ) {
+
+        speak(
+            stripHtml(text)
+        );
+    }
+}
+
+
+/* =========================================================
+   TYPING
+========================================================= */
+
+function showTyping() {
+
+    const msgDiv =
+        document.createElement('div');
+
+    msgDiv.classList.add(
+        'message',
+        'jarvis'
+    );
+
+    msgDiv.id =
+        'typingIndicator';
+
+    msgDiv.innerHTML = `
+
+        <div class="msg-header">
+            J.A.R.V.I.S
+        </div>
+
+        <div class="msg-content typing">
+
+            <span></span>
+            <span></span>
+            <span></span>
+
+        </div>
+
+    `;
+
+    chatArea.appendChild(
+        msgDiv
+    );
+
+    chatArea.scrollTop =
+        chatArea.scrollHeight;
+}
+
+function hideTyping() {
+
+    const el =
+        document.getElementById(
+            'typingIndicator'
+        );
+
+    if (el)
+        el.remove();
+}
+
+
+/* =========================================================
+   API KEY
+========================================================= */
+
+function saveApiKey() {
+
+    const k =
+        apiKeyInput.value.trim();
+
+    if (!k) {
+
+        addMessage(
+            "กรุณาวาง API Key ก่อนบันทึกครับท่าน",
+            'jarvis',
+            false,
+            true
+        );
+
+        return;
+    }
+
+    localStorage.setItem(
+        'jarvis_groq_key',
+        k
+    );
+
+    apiKeyInput.value = '';
+
+    updateKeyStatus();
+
+    addMessage(
+        "บันทึก API Key ลงคลังกุญแจท้องถิ่น (LocalStorage) เรียบร้อยครับท่าน",
+        'jarvis'
+    );
+}
+
+
+function clearApiKey() {
+
+    localStorage.removeItem(
+        'jarvis_groq_key'
+    );
+
+    updateKeyStatus();
+
+    addMessage(
+        "ลบ API Key ออกจากระบบแล้วครับ",
+        'jarvis'
+    );
+}
+
+
+function updateKeyStatus() {
+
+    if (
+        localStorage.getItem(
+            'jarvis_groq_key'
+        )
+    ) {
+
+        keyStatus.textContent =
+            '● KEY พร้อมใช้งาน';
+
+        keyStatus.className =
+            'ok';
+
+    } else {
+
+        keyStatus.textContent =
+            '● ยังไม่ได้ตั้งค่า KEY';
+
+        keyStatus.className =
+            'no';
+    }
+}
+
+
+/* =========================================================
+   GROQ API
+========================================================= */
+
+async function callGroqAPI(userText) {
+
+    const apiKey =
+        localStorage.getItem(
+            'jarvis_groq_key'
+        );
+
+    if (!apiKey) {
+
+        throw new Error(
+            "ยังไม่ได้ตั้งค่า API Key กรุณากรอกที่แถบด้านบนแล้วกด SAVE"
+        );
+    }
+
+
+    conversationHistory.push({
+
+        role:
+            'user',
+
+        content:
+            userText
+
     });
 
-    /* ================= ⚙️ เรียก Groq Chat API ================= */
-    function trimHistory() {
-        if (conversationHistory.length > 12) conversationHistory = conversationHistory.slice(-12);
+
+    if (
+        conversationHistory.length > 12
+    ) {
+
+        conversationHistory =
+            conversationHistory.slice(-12);
     }
 
-    async function callGroqAPI(userText) {
-        const apiKey = localStorage.getItem('jarvis_groq_key');
-        if (!apiKey) throw new Error("ยังไม่ได้ตั้งค่า API Key กรุณากรอกที่แถบด้านบนแล้วกด SAVE");
-        const model = modelSelect.value;
-        if (!model) throw new Error("ยังไม่ได้เลือกโมเดล กรุณารอระบบโหลดรายชื่อโมเดลก่อน");
 
-        conversationHistory.push({ role: 'user', content: userText });
-        trimHistory();
+    const res =
+        await fetch(
+            'https://api.groq.com/openai/v1/chat/completions',
+            {
 
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`   // Key มาจากตัวแปร ไม่ฮาร์ดโค้ด
-            },
-            body: JSON.stringify({
-                model: model,
-                messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...conversationHistory],
-                temperature: 0.7,
-                max_tokens: 1024
-            })
-        });
+                method:
+                    'POST',
 
-        if (!res.ok) {
-            let msg = `HTTP ${res.status}`;
-            try { const e = await res.json(); msg = e.error?.message || msg; } catch (_) {}
-            if (res.status === 401) msg = "API Key ไม่ถูกต้องหรือหมดอายุ (401 Unauthorized)";
-            if (res.status === 429) msg = "เกินโควต้าการใช้งาน (429 Rate Limit) กรุณาลองใหม่ภายหลัง";
+                headers: {
 
-            conversationHistory.pop();   // เอาคำถามที่ล้มเหลวออกจากหน่วยความจำ
+                    'Content-Type':
+                        'application/json',
 
-            // ถ้าโมเดลตาย/ถูกถอด → รีเฟรชรายชื่ออัตโนมัติเบื้องหลัง
-            if (/does not exist|no access|deprecated/i.test(msg)) {
-                loadAvailableModels(false);
-                msg += " — ระบบรีเฟรชรายชื่อโมเดลให้อัตโนมัติแล้ว กรุณากดส่งอีกครั้ง";
+                    'Authorization':
+                        `Bearer ${apiKey}`
+                },
+
+                body:
+                    JSON.stringify({
+
+                        model:
+                            modelSelect.value,
+
+                        messages: [
+
+                            {
+                                role:
+                                    'system',
+
+                                content:
+                                    SYSTEM_PROMPT
+                            },
+
+                            ...conversationHistory
+
+                        ],
+
+                        temperature:
+                            0.7,
+
+                        max_tokens:
+                            1024
+                    })
             }
-            throw new Error(msg);
-        }
+        );
 
-        const data = await res.json();
-        const reply = data.choices?.[0]?.message?.content || "(ไม่ได้รับคำตอบจากโมเดล)";
-        conversationHistory.push({ role: 'assistant', content: reply });
-        trimHistory();
-        return reply;
-    }
 
-    /* ================= 🌐 ทดสอบ URL API (GET) ================= */
-    async function testUrl(url) {
-        const start = performance.now();
-        const res = await fetch(url);
-        const ms = ((performance.now() - start) / 1000).toFixed(2);
-        const ct = res.headers.get('content-type') || '';
-        let body = ct.includes('application/json')
-            ? JSON.stringify(await res.json(), null, 2)
-            : await res.text();
-        if (body.length > 3000) body = body.slice(0, 3000) + '\n... (ข้อมูลยาวเกิน แสดงเฉพาะส่วนต้น)';
-        return { status: res.status, statusText: res.statusText, ms, body, ok: res.ok };
-    }
+    if (!res.ok) {
 
-    /* ================= 🧠 สมองกลประมวลผลคำสั่ง ================= */
-    async function processCommand() {
-        const input = userInput.value.trim();
-        if (!input) return;
-
-        addMessage(escapeHtml(input), 'user');
-        userInput.value = '';
-        sendBtn.disabled = true;
-        showTyping();
-        await new Promise(r => setTimeout(r, 400));
-        hideTyping();
-
-        const low = input.toLowerCase();
+        let msg =
+            `HTTP ${res.status}`;
 
         try {
-            if (low === 'clear' || input === 'ล้าง') {
-                chatArea.innerHTML = '';
-                conversationHistory = [];
-                addMessage("ล้างหน้าจอและหน่วยความจำการสนทนาเรียบร้อยแล้วครับ", 'jarvis');
-            }
-            else if (low === 'help' || input === 'ช่วยเหลือ') {
-                addMessage(`คำสั่งที่รองรับ:<br>
-                    • พิมพ์คำถาม/ประโยคทั่วไป → ส่งเข้า Groq AI (จำบริบทการคุยได้)<br>
-                    • วาง <b>URL</b> (http/https) → ทดสอบ API แบบ GET<br>
-                    • <b>models</b> / โมเดล → ซิงค์และแสดงรายชื่อโมเดลทั้งหมด<br>
-                    • <b>time</b> / เวลา → บอกเวลาปัจจุบัน<br>
-                    • <b>clear</b> / ล้าง → ล้างหน้าจอและหน่วยความจำ<br>
-                    • <b>help</b> → แสดงคำสั่งนี้<br><br>
-                    ⚙️ ตั้งค่า API Key ที่แถบด้านบนก่อนใช้งาน AI ครับท่าน`, 'jarvis');
-            }
-            else if (low === 'time' || input === 'เวลา') {
-                addMessage(`เวลาปัจจุบันของระบบ: ${new Date().toLocaleString('th-TH', { dateStyle: 'full', timeStyle: 'medium' })}`, 'jarvis');
-            }
-            else if (low === 'models' || input === 'โมเดล') {
-                addMessage("กำลังซิงค์รายชื่อโมเดลล่าสุดจาก Groq ครับท่าน...", 'jarvis');
-                await loadAvailableModels(false);
-                const list = Array.from(modelSelect.options).map(o => '• ' + o.value).join('<br>');
-                addMessage(`โมเดลที่พร้อมใช้งานขณะนี้:<br>${list}`, 'jarvis');
-            }
-            else if (/^https?:\/\//i.test(input)) {
-                addMessage(`กำลังสแกนปลายทาง: <code>${escapeHtml(input)}</code>`, 'jarvis');
-                showTyping();
-                const r = await testUrl(input);
-                hideTyping();
-                const color = r.ok ? '#00ff88' : '#ff5555';
-                addMessage(`ผลการทดสอบ API:<br><b>Status:</b> <span style="color:${color}">${r.status} ${r.statusText}</span><br><b>Response Time:</b> ${r.ms} วินาที`, 'jarvis');
-                addMessage(r.body, 'jarvis', true);
-            }
-            else {
-                if (!localStorage.getItem('jarvis_groq_key')) {
-                    addMessage("ระบบยังไม่ได้รับกุญแจเข้าถึง (API Key) กรุณากรอกที่แถบด้านบนแล้วกด SAVE ก่อนครับท่าน", 'jarvis', false, true);
-                } else {
-                    showTyping();
-                    const reply = await callGroqAPI(input);
-                    hideTyping();
-                    addMessage(formatAI(reply), 'jarvis');
-                }
-            }
-        } catch (err) {
-            hideTyping();
-            addMessage(`ข้อผิดพลาดของระบบ: ${escapeHtml(err.message)}`, 'jarvis', false, true);
-        } finally {
-            sendBtn.disabled = false;
-            userInput.focus();
-        }
+
+            const e =
+                await res.json();
+
+            msg =
+                e.error?.message ||
+                msg;
+
+        } catch (_) {}
+
+
+        if (res.status === 401)
+
+            msg =
+                "API Key ไม่ถูกต้องหรือหมดอายุ (401 Unauthorized)";
+
+
+        if (res.status === 429)
+
+            msg =
+                "เกินโควต้าการใช้งาน (429 Rate Limit) กรุณาลองใหม่ภายหลัง";
+
+
+        throw new Error(msg);
     }
 
-    /* ================= 🚀 เริ่มต้นระบบ ================= */
-    userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') processCommand(); });
 
-    window.onload = async () => {
-        updateKeyStatus();
-        const hasKey = !!localStorage.getItem('jarvis_groq_key');
-        addMessage(hasKey
-            ? "ระบบ J.A.R.V.I.S ออนไลน์ครบถ้วนครับท่าน กำลังซิงค์รายชื่อโมเดลล่าสุดจาก Groq..."
-            : "ระบบ J.A.R.V.I.S ออนไลน์แล้วครับท่าน<br>เริ่มต้นใช้งาน: วาง <b>Groq API Key</b> ที่แถบด้านบน กด SAVE แล้วพิมพ์ <b>help</b> เพื่อดูคำสั่งทั้งหมด",
-            'jarvis');
-        if (hasKey) await loadAvailableModels(false);
-        userInput.focus();
+    const data =
+        await res.json();
+
+
+    const reply =
+        data.choices?.[0]?.message?.content ||
+        "(ไม่ได้รับคำตอบจากโมเดล)";
+
+
+    conversationHistory.push({
+
+        role:
+            'assistant',
+
+        content:
+            reply
+
+    });
+
+
+    if (
+        conversationHistory.length > 12
+    ) {
+
+        conversationHistory =
+            conversationHistory.slice(-12);
+    }
+
+
+    return reply;
+}
+
+
+/* =========================================================
+   URL API TESTER
+========================================================= */
+
+async function testUrl(url) {
+
+    const start =
+        performance.now();
+
+    const res =
+        await fetch(url);
+
+    const ms =
+        (
+            (performance.now() - start)
+            / 1000
+        ).toFixed(2);
+
+    const ct =
+        res.headers.get(
+            'content-type'
+        ) || '';
+
+    let body =
+        ct.includes(
+            'application/json'
+        )
+            ? JSON.stringify(
+                await res.json(),
+                null,
+                2
+            )
+            : await res.text();
+
+
+    if (
+        body.length > 3000
+    ) {
+
+        body =
+            body.slice(0,3000) +
+            '\n... (ข้อมูลยาวเกิน แสดงเฉพาะส่วนต้น)';
+    }
+
+
+    return {
+
+        status:
+            res.status,
+
+        statusText:
+            res.statusText,
+
+        ms,
+
+        body,
+
+        ok:
+            res.ok
     };
+}
+
+
+/* =========================================================
+   MAIN COMMAND PROCESSOR
+========================================================= */
+
+async function processCommand() {
+
+    const input =
+        userInput.value.trim();
+
+    if (!input)
+        return;
+
+
+    addMessage(
+        escapeHtml(input),
+        'user'
+    );
+
+
+    userInput.value =
+        '';
+
+    sendBtn.disabled =
+        true;
+
+
+    setProcessing(
+        true
+    );
+
+
+    showTyping();
+
+
+    await new Promise(
+        r => setTimeout(r,400)
+    );
+
+
+    hideTyping();
+
+
+    const low =
+        input.toLowerCase();
+
+
+    try {
+
+        /* CLEAR */
+
+        if (
+            low === 'clear' ||
+            input === 'ล้าง'
+        ) {
+
+            chatArea.innerHTML =
+                '';
+
+            conversationHistory =
+                [];
+
+            addMessage(
+                "ล้างหน้าจอและหน่วยความจำการสนทนาเรียบร้อยแล้วครับ",
+                'jarvis'
+            );
+        }
+
+
+        /* HELP */
+
+        else if (
+            low === 'help' ||
+            input === 'ช่วยเหลือ'
+        ) {
+
+            addMessage(`
+
+                คำสั่งที่รองรับ:<br>
+
+                • พิมพ์คำถาม/ประโยคทั่วไป
+                → ส่งเข้า Groq AI<br>
+
+                • วาง <b>URL</b>
+                → ทดสอบ API แบบ GET<br>
+
+                • <b>time</b> / เวลา
+                → บอกเวลาปัจจุบัน<br>
+
+                • <b>clear</b> / ล้าง
+                → ล้างหน้าจอและหน่วยความจำ<br>
+
+                • <b>help</b>
+                → แสดงคำสั่งนี้
+
+                <br><br>
+
+                ⚙️ ตั้งค่า API Key
+                ที่แถบด้านบนก่อนใช้งาน AI
+
+            `,'jarvis');
+        }
+
+
+        /* TIME */
+
+        else if (
+            low === 'time' ||
+            input === 'เวลา'
+        ) {
+
+            addMessage(
+
+                `เวลาปัจจุบันของระบบ:
+                ${new Date().toLocaleString(
+                    'th-TH',
+                    {
+                        dateStyle:
+                            'full',
+
+                        timeStyle:
+                            'medium'
+                    }
+                )}`,
+
+                'jarvis'
+            );
+        }
+
+
+        /* URL */
+
+        else if (
+            /^https?:\/\//i.test(input)
+        ) {
+
+            addMessage(
+
+                `กำลังสแกนปลายทาง:
+                <code>${escapeHtml(input)}</code>`,
+
+                'jarvis'
+            );
+
+
+            showTyping();
+
+
+            const r =
+                await testUrl(input);
+
+
+            hideTyping();
+
+
+            const color =
+                r.ok
+                    ? '#00ff88'
+                    : '#ff5555';
+
+
+            addMessage(
+
+                `ผลการทดสอบ API:<br>
+
+                <b>Status:</b>
+                <span style="color:${color}">
+                    ${r.status}
+                    ${r.statusText}
+                </span>
+
+                <br>
+
+                <b>Response Time:</b>
+                ${r.ms} วินาที`,
+
+                'jarvis'
+            );
+
+
+            addMessage(
+                r.body,
+                'jarvis',
+                true
+            );
+        }
+
+
+        /* AI */
+
+        else {
+
+            if (
+                !localStorage.getItem(
+                    'jarvis_groq_key'
+                )
+            ) {
+
+                addMessage(
+
+                    "ระบบยังไม่ได้รับกุญแจเข้าถึง (API Key) กรุณากรอกที่แถบด้านบนแล้วกด SAVE ก่อนครับท่าน",
+
+                    'jarvis',
+                    false,
+                    true
+                );
+
+            } else {
+
+                showTyping();
+
+
+                const reply =
+                    await callGroqAPI(
+                        input
+                    );
+
+
+                hideTyping();
+
+
+                addMessage(
+                    formatAI(reply),
+                    'jarvis'
+                );
+            }
+        }
+
+
+    } catch (err) {
+
+        hideTyping();
+
+
+        addMessage(
+
+            `ข้อผิดพลาดของระบบ:
+            ${escapeHtml(err.message)}`,
+
+            'jarvis',
+
+            false,
+
+            true
+        );
+
+
+    } finally {
+
+        sendBtn.disabled =
+            false;
+
+        setProcessing(
+            false
+        );
+
+        userInput.focus();
+    }
+}
+
+
+/* =========================================================
+   ENTER KEY
+========================================================= */
+
+userInput.addEventListener(
+    'keypress',
+    (e) => {
+
+        if (
+            e.key === 'Enter'
+        ) {
+
+            processCommand();
+        }
+    }
+);
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+window.onload = () => {
+
+    updateKeyStatus();
+
+
+    const hasKey =
+        !!localStorage.getItem(
+            'jarvis_groq_key'
+        );
+
+
+    addMessage(
+
+        hasKey
+
+            ? "ระบบ J.A.R.V.I.S ออนไลน์ครบถ้วนครับท่าน กุญแจเข้าถึงถูกโหลดแล้ว พร้อมรับคำสั่งทันที"
+
+            : "ระบบ J.A.R.V.I.S ออนไลน์แล้วครับท่าน<br>เริ่มต้นใช้งาน: วาง <b>Groq API Key</b> ที่แถบด้านบน กด SAVE แล้วพิมพ์ <b>help</b> เพื่อดูคำสั่งทั้งหมด",
+
+        'jarvis'
+    );
+
+
+    userInput.focus();
+};
+
 </script>
 
 </body>
