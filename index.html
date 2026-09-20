@@ -2,11 +2,13 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8" />
-<title>API Key Manager</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>My AI Assistant</title>
 <style>
   :root {
-    --bg: #0f1115;
-    --panel: #171a21;
+    --bg: #0b0d12;
+    --panel: #14171f;
+    --panel-2: #1a1e28;
     --border: #262b36;
     --text: #e6e8ee;
     --muted: #8a93a6;
@@ -14,198 +16,622 @@
     --accent-2: #22d3ee;
     --danger: #ef4444;
     --ok: #22c55e;
+    --user-bubble: linear-gradient(135deg, #7c5cff, #5b8cff);
+    --ai-bubble: #1a1e28;
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
   body {
-    margin: 0;
-    min-height: 100vh;
     font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-    background: radial-gradient(1200px 600px at 20% -10%, #1b1f2e 0%, transparent 60%),
-                radial-gradient(900px 500px at 110% 10%, #13202b 0%, transparent 60%),
-                var(--bg);
+    background:
+      radial-gradient(1000px 500px at 10% -10%, #1b1f2e 0%, transparent 60%),
+      radial-gradient(800px 400px at 110% 10%, #13202b 0%, transparent 60%),
+      var(--bg);
     color: var(--text);
     display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== Header ===== */
+  header {
+    display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 24px;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(20,23,31,.7);
+    backdrop-filter: blur(10px);
   }
-  .card {
-    width: 100%;
-    max-width: 520px;
-    background: linear-gradient(180deg, var(--panel), #12151c);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 28px;
-    box-shadow: 0 20px 60px rgba(0,0,0,.45);
-  }
-  h1 {
-    margin: 0 0 6px;
-    font-size: 22px;
+  header h1 {
+    margin: 0;
+    font-size: 18px;
     background: linear-gradient(90deg, var(--accent), var(--accent-2));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
-  p.sub { margin: 0 0 22px; color: var(--muted); font-size: 14px; }
-  label { display:block; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
-  .field {
-    display: flex;
-    gap: 8px;
-    background: #0c0f14;
+  header .actions { display: flex; gap: 8px; }
+  .icon-btn {
+    background: transparent;
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 6px 6px 6px 14px;
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all .2s;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ===== Chat area ===== */
+  .chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .msg { display: flex; gap: 12px; animation: fade .3s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .msg.user { flex-direction: row-reverse; }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .msg.user .avatar { background: var(--user-bubble); }
+  .msg.ai .avatar  { background: var(--panel-2); border: 1px solid var(--border); }
+  .bubble {
+    max-width: 75%;
+    padding: 12px 16px;
+    border-radius: 14px;
+    line-height: 1.6;
+    font-size: 15px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .msg.user .bubble { background: var(--user-bubble); color: white; border-bottom-right-radius: 4px; }
+  .msg.ai  .bubble { background: var(--ai-bubble); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .bubble code {
+    background: #0c0f14;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    color: var(--accent-2);
+  }
+  .bubble pre {
+    background: #0c0f14;
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  .bubble pre code { background: transparent; padding: 0; color: var(--text); }
+
+  .typing::after {
+    content: "▊";
+    animation: blink 1s infinite;
+    color: var(--accent);
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    margin: auto;
+    padding: 40px;
+  }
+  .empty h2 {
+    font-size: 28px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 8px;
+  }
+  .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 20px; }
+  .chip {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ===== Input ===== */
+  .input-area {
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+    background: rgba(20,23,31,.7);
+    backdrop-filter: blur(10px);
+  }
+  .input-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    gap: 10px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 8px 8px 8px 16px;
     transition: border-color .2s;
   }
-  .field:focus-within { border-color: var(--accent); }
-  .field input {
+  .input-wrap:focus-within { border-color: var(--accent); }
+  .input-wrap textarea {
     flex: 1;
     background: transparent;
     border: 0;
     outline: none;
     color: var(--text);
     font-size: 15px;
-    padding: 10px 0;
-    font-family: "JetBrains Mono", monospace;
+    resize: none;
+    font-family: inherit;
+    max-height: 160px;
+    padding: 8px 0;
+    line-height: 1.5;
   }
-  button {
+  .send-btn {
     background: linear-gradient(135deg, var(--accent), #5b8cff);
     color: white;
     border: 0;
-    padding: 10px 18px;
+    padding: 0 18px;
     border-radius: 10px;
-    font-weight: 600;
     cursor: pointer;
+    font-weight: 600;
     transition: transform .1s, opacity .2s;
   }
-  button:hover { transform: translateY(-1px); }
-  button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
-  .row { display:flex; gap:10px; margin-top: 14px; }
-  .ghost {
-    background: transparent;
+  .send-btn:hover:not(:disabled) { transform: translateY(-1px); }
+  .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ===== Modal ===== */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.6);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px;
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  .modal h2 {
+    margin: 0 0 6px;
+    font-size: 20px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .modal p.sub { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    background: #0c0f14;
     border: 1px solid var(--border);
     color: var(--text);
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
   }
-  .status {
-    margin-top: 18px;
-    font-size: 13px;
-    color: var(--muted);
-    min-height: 20px;
+  .form-group input:focus, .form-group textarea:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #5b8cff);
+    color: white; border: 0; padding: 10px 20px;
+    border-radius: 10px; font-weight: 600; cursor: pointer;
   }
+  .btn-ghost {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text); padding: 10px 20px;
+    border-radius: 10px; cursor: pointer;
+  }
+  .status { font-size: 13px; margin-top: 12px; min-height: 18px; }
   .status.ok { color: var(--ok); }
   .status.err { color: var(--danger); }
   .hint {
-    margin-top: 22px;
-    font-size: 12px;
-    color: var(--muted);
-    background: #0c0f14;
-    border: 1px dashed var(--border);
-    border-radius: 10px;
-    padding: 12px;
+    font-size: 12px; color: var(--muted);
+    background: #0c0f14; border: 1px dashed var(--border);
+    border-radius: 10px; padding: 10px 12px; margin-top: 14px;
     line-height: 1.6;
   }
-  code { color: var(--accent-2); }
+  .hint code { color: var(--accent-2); }
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>🔐 API Key Manager</h1>
-    <p class="sub">เก็บ API Key ไว้ใน Firebase Firestore (ไม่อยู่ในโค้ดฝั่ง client)</p>
 
-    <label for="keyInput">API Key</label>
-    <div class="field">
-      <input id="keyInput" type="password" placeholder="sk-xxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
-      <button id="saveBtn">Save</button>
+<header>
+  <h1>🤖 My AI Assistant</h1>
+  <div class="actions">
+    <button class="icon-btn" id="newChatBtn">✨ New Chat</button>
+    <button class="icon-btn" id="settingsBtn">⚙️ Settings</button>
+  </div>
+</header>
+
+<div class="chat" id="chat">
+  <div class="empty" id="emptyState">
+    <h2>สวัสดี! 👋</h2>
+    <p>ฉันคือ AI ส่วนตัวของคุณ มีอะไรให้ช่วยไหม?</p>
+    <div class="suggestions">
+      <div class="chip" data-q="อธิบาย Quantum Computing ให้ง่ายๆ">อธิบาย Quantum Computing</div>
+      <div class="chip" data-q="เขียนโค้ด Python สำหรับ sort list">เขียนโค้ด Python sort</div>
+      <div class="chip" data-q="แนะนำหนังน่าดูแนว Sci-Fi">แนะนำหนัง Sci-Fi</div>
+      <div class="chip" data-q="สรุปข่าว AI ล่าสุด">สรุปข่าว AI ล่าสุด</div>
+    </div>
+  </div>
+</div>
+
+<div class="input-area">
+  <div class="input-wrap">
+    <textarea id="input" rows="1" placeholder="พิมพ์ข้อความ... (Shift+Enter ขึ้นบรรทัดใหม่)"></textarea>
+    <button class="send-btn" id="sendBtn">ส่ง</button>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h2>⚙️ ตั้งค่า AI</h2>
+    <p class="sub">ข้อมูลจะถูกบันทึกไว้ใน Firebase Firestore (ไม่อยู่ในโค้ด)</p>
+
+    <div class="form-group">
+      <label>API Provider</label>
+      <select id="provider">
+        <option value="openai">OpenAI</option>
+        <option value="groq">Groq</option>
+        <option value="openrouter">OpenRouter</option>
+        <option value="custom">Custom (OpenAI-compatible)</option>
+      </select>
     </div>
 
-    <div class="row">
-      <button id="loadBtn" class="ghost">Load from Firebase</button>
-      <button id="toggleBtn" class="ghost">Show / Hide</button>
+    <div class="form-group">
+      <label>API Base URL</label>
+      <input id="baseUrl" type="text" placeholder="https://api.openai.com/v1" />
     </div>
 
+    <div class="form-group">
+      <label>API Key</label>
+      <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off" />
+    </div>
+
+    <div class="form-group">
+      <label>Model</label>
+      <input id="model" type="text" placeholder="gpt-4o-mini" />
+    </div>
+
+    <div class="form-group">
+      <label>System Prompt (บุคลิก AI)</label>
+      <textarea id="systemPrompt" rows="3" placeholder="You are a helpful assistant..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" id="cancelBtn">ยกเลิก</button>
+      <button class="btn-ghost" id="loadBtn">🔄 Load</button>
+      <button class="btn-primary" id="saveBtn">💾 บันทึก</button>
+    </div>
     <div id="status" class="status"></div>
 
     <div class="hint">
-      วิธีใช้: <br>
-      1) สร้างโปรเจกต์ Firebase → เปิด Firestore → สร้าง collection ชื่อ <code>config</code> → document <code>settings</code><br>
-      2) เติม <code>firebaseConfig</code> ด้านล่างในโค้ด<br>
-      3) กด <b>Save</b> เพื่อเก็บ key, กด <b>Load</b> เพื่อดึงกลับมาใช้
+      <b>Provider Defaults:</b><br>
+      • OpenAI → <code>https://api.openai.com/v1</code> / model: <code>gpt-4o-mini</code><br>
+      • Groq → <code>https://api.groq.com/openai/v1</code> / model: <code>llama-3.3-70b-versatile</code><br>
+      • OpenRouter → <code>https://openrouter.ai/api/v1</code> / model: <code>openai/gpt-4o-mini</code>
     </div>
   </div>
+</div>
 
 <!-- Firebase SDK -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import {
-    getFirestore, doc, setDoc, getDoc
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, doc, setDoc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // ⬇️ เติมค่าจาก Firebase Console ของคุณ
-  const firebaseConfig = {
-    apiKey: "YOUR_FIREBASE_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "xxxx",
-    appId: "xxxx"
-  };
+// ⬇️ เติมค่า Firebase ของคุณ
+const firebaseConfig = {
+  apiKey: "YOUR_FIREBASE_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "xxxx",
+  appId: "xxxx"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
 
-  const COLLECTION = "config";
-  const DOC_ID     = "settings";
-  const FIELD      = "myApiKey";   // ชื่อ field ที่เก็บ API key
+const CONFIG_DOC = doc(db, "config", "ai_settings");
 
-  const $ = (id) => document.getElementById(id);
-  const status = (msg, type = "") => {
-    const el = $("status");
-    el.textContent = msg;
-    el.className = "status " + type;
-  };
+// ===== Provider defaults =====
+const PROVIDERS = {
+  openai:    { baseUrl: "https://api.openai.com/v1",            model: "gpt-4o-mini" },
+  groq:      { baseUrl: "https://api.groq.com/openai/v1",       model: "llama-3.3-70b-versatile" },
+  openrouter:{ baseUrl: "https://openrouter.ai/api/v1",         model: "openai/gpt-4o-mini" },
+  custom:    { baseUrl: "",                                      model: "" }
+};
 
-  // บันทึก API Key ลง Firestore
-  $("saveBtn").addEventListener("click", async () => {
-    const val = $("keyInput").value.trim();
-    if (!val) return status("กรุณาใส่ API Key", "err");
-    try {
-      await setDoc(doc(db, COLLECTION, DOC_ID), { [FIELD]: val, updatedAt: Date.now() });
-      status("✅ บันทึกสำเร็จ", "ok");
-    } catch (e) {
-      console.error(e);
-      status("❌ บันทึกไม่สำเร็จ: " + e.message, "err");
+// ===== DOM =====
+const $ = (id) => document.getElementById(id);
+const chatEl = $("chat");
+const inputEl = $("input");
+const sendBtn = $("sendBtn");
+const modal = $("modal");
+const statusEl = $("status");
+
+let history = JSON.parse(localStorage.getItem("chat_history") || "[]");
+let isStreaming = false;
+
+// ===== Settings =====
+function setStatus(msg, type = "") {
+  statusEl.textContent = msg;
+  statusEl.className = "status " + type;
+}
+
+function applyProviderDefaults(provider) {
+  const p = PROVIDERS[provider];
+  if (p) {
+    $("baseUrl").value = p.baseUrl;
+    $("model").value   = p.model;
+  }
+}
+
+$("provider").addEventListener("change", (e) => applyProviderDefaults(e.target.value));
+
+$("settingsBtn").addEventListener("click", async () => {
+  modal.classList.add("show");
+  // โหลดค่าล่าสุดจาก Firestore
+  try {
+    const snap = await getDoc(CONFIG_DOC);
+    if (snap.exists()) {
+      const d = snap.data();
+      $("provider").value    = d.provider || "openai";
+      $("baseUrl").value     = d.baseUrl || "";
+      $("apiKey").value      = d.apiKey || "";
+      $("model").value       = d.model || "";
+      $("systemPrompt").value= d.systemPrompt || "You are a helpful assistant. ตอบเป็นภาษาไทยเมื่อผู้ใช้พิมพ์ภาษาไทย";
     }
-  });
+  } catch (e) {
+    console.error(e);
+  }
+});
 
-  // โหลด API Key จาก Firestore
-  $("loadBtn").addEventListener("click", async () => {
-    try {
-      const snap = await getDoc(doc(db, COLLECTION, DOC_ID));
-      if (!snap.exists()) return status("⚠️ ยังไม่มีข้อมูลใน Firestore", "err");
-      const key = snap.data()[FIELD];
-      $("keyInput").value = key || "";
-      status("✅ โหลดสำเร็จ", "ok");
-    } catch (e) {
-      console.error(e);
-      status("❌ โหลดไม่สำเร็จ: " + e.message, "err");
-    }
-  });
+$("cancelBtn").addEventListener("click", () => modal.classList.remove("show"));
 
-  // Show/Hide password
-  $("toggleBtn").addEventListener("click", () => {
-    const i = $("keyInput");
-    i.type = i.type === "password" ? "text" : "password";
-  });
+$("loadBtn").addEventListener("click", async () => {
+  try {
+    const snap = await getDoc(CONFIG_DOC);
+    if (!snap.exists()) return setStatus("⚠️ ยังไม่มีข้อมูลใน Firestore", "err");
+    const d = snap.data();
+    $("provider").value    = d.provider || "openai";
+    $("baseUrl").value     = d.baseUrl || "";
+    $("apiKey").value      = d.apiKey || "";
+    $("model").value       = d.model || "";
+    $("systemPrompt").value= d.systemPrompt || "";
+    setStatus("✅ โหลดแล้ว", "ok");
+  } catch (e) {
+    setStatus("❌ " + e.message, "err");
+  }
+});
 
-  // === ฟังก์ชันสำหรับเรียกใช้ API Key ในส่วนอื่นของเว็บ ===
-  window.getApiKey = async () => {
-    const snap = await getDoc(doc(db, COLLECTION, DOC_ID));
-    return snap.exists() ? snap.data()[FIELD] : null;
+$("saveBtn").addEventListener("click", async () => {
+  const data = {
+    provider:     $("provider").value,
+    baseUrl:      $("baseUrl").value.trim(),
+    apiKey:       $("apiKey").value.trim(),
+    model:        $("model").value.trim(),
+    systemPrompt: $("systemPrompt").value.trim(),
+    updatedAt:    Date.now()
   };
+  if (!data.apiKey) return setStatus("กรุณาใส่ API Key", "err");
+  if (!data.baseUrl) return setStatus("กรุณาใส่ Base URL", "err");
+  if (!data.model) return setStatus("กรุณาใส่ Model", "err");
 
-  // ตัวอย่างการใช้งาน:
-  // const key = await getApiKey();
-  // fetch("https://api.example.com/data", { headers: { Authorization: "Bearer " + key } });
+  try {
+    await setDoc(CONFIG_DOC, data);
+    setStatus("✅ บันทึกสำเร็จ", "ok");
+    setTimeout(() => modal.classList.remove("show"), 800);
+  } catch (e) {
+    setStatus("❌ " + e.message, "err");
+  }
+});
+
+async function loadConfig() {
+  const snap = await getDoc(CONFIG_DOC);
+  return snap.exists() ? snap.data() : null;
+}
+
+// ===== Chat =====
+function renderMessages() {
+  chatEl.innerHTML = "";
+  if (history.length === 0) {
+    chatEl.innerHTML = `
+      <div class="empty">
+        <h2>สวัสดี! 👋</h2>
+        <p>ฉันคือ AI ส่วนตัวของคุณ มีอะไรให้ช่วยไหม?</p>
+        <div class="suggestions">
+          <div class="chip" data-q="อธิบาย Quantum Computing ให้ง่ายๆ">อธิบาย Quantum Computing</div>
+          <div class="chip" data-q="เขียนโค้ด Python สำหรับ sort list">เขียนโค้ด Python sort</div>
+          <div class="chip" data-q="แนะนำหนังน่าดูแนว Sci-Fi">แนะนำหนัง Sci-Fi</div>
+          <div class="chip" data-q="สรุปข่าว AI ล่าสุด">สรุปข่าว AI ล่าสุด</div>
+        </div>
+      </div>`;
+    attachChipHandlers();
+    return;
+  }
+  history.forEach(m => appendMessage(m.role, m.content, false));
+}
+
+function appendMessage(role, content, save = true) {
+  // ลบ empty state
+  const empty = chatEl.querySelector(".empty");
+  if (empty) empty.remove();
+
+  const div = document.createElement("div");
+  div.className = "msg " + (role === "user" ? "user" : "ai");
+  div.innerHTML = `
+    <div class="avatar">${role === "user" ? "🧑" : "🤖"}</div>
+    <div class="bubble"></div>
+  `;
+  div.querySelector(".bubble").textContent = content;
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  if (save) {
+    history.push({ role: role === "user" ? "user" : "assistant", content });
+    localStorage.setItem("chat_history", JSON.stringify(history));
+  }
+  return div.querySelector(".bubble");
+}
+
+function attachChipHandlers() {
+  document.querySelectorAll(".chip").forEach(c => {
+    c.addEventListener("click", () => {
+      inputEl.value = c.dataset.q;
+      inputEl.focus();
+    });
+  });
+}
+attachChipHandlers();
+
+$("newChatBtn").addEventListener("click", () => {
+  if (history.length && !confirm("เริ่มแชทใหม่? ข้อความเก่าจะหายไป")) return;
+  history = [];
+  localStorage.removeItem("chat_history");
+  renderMessages();
+});
+
+// Auto-resize textarea
+inputEl.addEventListener("input", () => {
+  inputEl.style.height = "auto";
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px";
+});
+
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+sendBtn.addEventListener("click", sendMessage);
+
+async function sendMessage() {
+  if (isStreaming) return;
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  const config = await loadConfig();
+  if (!config || !config.apiKey) {
+    alert("กรุณาตั้งค่า API Key ก่อน (กดปุ่ม ⚙️ Settings)");
+    $("settingsBtn").click();
+    return;
+  }
+
+  appendMessage("user", text);
+  inputEl.value = "";
+  inputEl.style.height = "auto";
+
+  // สร้าง AI bubble สำหรับ streaming
+  const aiBubble = appendMessage("ai", "");
+  aiBubble.classList.add("typing");
+
+  isStreaming = true;
+  sendBtn.disabled = true;
+
+  try {
+    const messages = [];
+    if (config.systemPrompt) {
+      messages.push({ role: "system", content: config.systemPrompt });
+    }
+    history.forEach(m => messages.push({ role: m.role, content: m.content }));
+
+    const url = config.baseUrl.replace(/\/$/, "") + "/chat/completions";
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + config.apiKey
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: messages,
+        stream: true
+      })
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 200)}`);
+    }
+
+    // Streaming
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullContent = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split("\n");
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith("data:")) continue;
+        const data = trimmed.slice(5).trim();
+        if (data === "[DONE]") continue;
+        try {
+          const json = JSON.parse(data);
+          const delta = json.choices?.[0]?.delta?.content || "";
+          if (delta) {
+            fullContent += delta;
+            aiBubble.textContent = fullContent;
+            chatEl.scrollTop = chatEl.scrollHeight;
+          }
+        } catch (e) { /* ignore parse errors */ }
+      }
+    }
+
+    aiBubble.classList.remove("typing");
+    // บันทึก assistant message
+    history.push({ role: "assistant", content: fullContent });
+    localStorage.setItem("chat_history", JSON.stringify(history));
+
+  } catch (e) {
+    aiBubble.classList.remove("typing");
+    aiBubble.textContent = "❌ เกิดข้อผิดพลาด: " + e.message;
+    console.error(e);
+  } finally {
+    isStreaming = false;
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+}
+
+renderMessages();
 </script>
 </body>
 </html>
