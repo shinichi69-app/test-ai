@@ -1,1669 +1,211 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shinichi - Portfolio</title>
-
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0a0a0a">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Shinichi">
-<link rel="apple-touch-icon" href="shin.png">
-
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('SW Registered:', reg.scope))
-      .catch(err => console.error('SW Fail:', err));
-  });
-}
-</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
-
-<!-- ✅ เพิ่ม: Marked.js สำหรับ render Markdown -->
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
+<meta charset="UTF-8" />
+<title>API Key Manager</title>
 <style>
-/* --- 🎨 Monochrome Tactical Variables (Visitor Mode) --- */
-:root {
---bg-base: #0a0a0a;
---bg-surface: #121212;
---bg-surface-hover: #1a1a1a;
---border-subtle: #262626;
---border-active: #ffffff;
---text-pure: #ffffff;
---text-muted: #737373;
---text-ghost: #404040;
---accent-premium: #ffffff;
---grid-color: rgba(255, 255, 255, 0.01);
---glow-premium: transparent;
---font-sans: 'Plus Jakarta Sans', sans-serif;
---font-mono: 'JetBrains Mono', monospace;
---transition-tactical: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-/* --- 🛡️ Tactical Logo Background Watermark --- */
-.bg-tactical-watermark {
-position: fixed;
-top: 50%;
-left: 50%;
-transform: translate(-50%, -50%);
-width: 90vw;
-max-width: 900px;
-opacity: 0.12;
-z-index: 0;
-pointer-events: none;
-user-select: none;
-filter: grayscale(100%) drop-shadow(0 0 20px rgba(255, 255, 255, 0.05));
-transition: opacity 0.8s ease, filter 0.8s ease, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-body.owner-mode .bg-tactical-watermark {
-opacity: 0.18;
-filter: grayscale(0%) sepia(100%) hue-rotate(5deg) saturate(200%) drop-shadow(0 0 30px rgba(205, 162, 80, 0.25));
-}
-/* --- ✨ 👑 PREMIUM THEME VARIABLES (When logged in as Owner) --- */
-body.owner-mode {
---bg-base: #050505;
---bg-surface: rgba(26, 22, 16, 0.7);
---bg-surface-hover: rgba(38, 32, 23, 0.9);
---border-subtle: #4a3b2c;
---border-active: #cda250;
---text-pure: #f5eedc;
---text-muted: #a69276;
---text-ghost: #614e3b;
---accent-premium: #cda250;
---grid-color: rgba(205, 162, 80, 0.02);
---glow-premium: 0 0 30px rgba(205, 162, 80, 0.15);
-}
-/* --- 🌐 Global Reset & Base Layout --- */
-* {
-box-sizing: border-box;
-margin: 0;
-padding: 0;
-}
-body {
-background-color: var(--bg-base);
-color: var(--text-pure);
-font-family: var(--font-sans);
-min-height: 100vh;
-line-height: 1.6;
-overflow-x: hidden;
-position: relative;
-isolation: isolate;
-background-image:
-linear-gradient(var(--grid-color) 1px, transparent 1px),
-linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-background-size: 40px 40px;
-transition: background-color 0.8s ease, background-image 0.8s ease;
-}
-/* =========================================================
-🛰️ CYBER HUD BACKGROUND v2
-========================================================= */
-.cyber-hud-bg {
-position: fixed;
-inset: 0;
-z-index: 0;
-pointer-events: none;
-overflow: hidden;
-opacity: 0.72;
-}
-.hud-corner {
-position: absolute;
-width: 145px;
-height: 145px;
-opacity: 0.34;
-}
-.hud-corner::before,
-.hud-corner::after {
-content: "";
-position: absolute;
-background: var(--text-pure);
-opacity: 0.28;
-}
-.hud-corner::before {
-width: 100%;
-height: 1px;
-}
-.hud-corner::after {
-width: 1px;
-height: 100%;
-}
-.hud-corner-tl { left: 18px; top: 18px; }
-.hud-corner-tr { right: 18px; top: 18px; transform: scaleX(-1); }
-.hud-corner-bl { left: 18px; bottom: 18px; transform: scaleY(-1); }
-.hud-corner-br { right: 18px; bottom: 18px; transform: scale(-1); }
-.hud-corner {
-border-top: 1px solid rgba(255,255,255,0.10);
-border-left: 1px solid rgba(255,255,255,0.10);
-}
-.hud-corner::before {
-top: 26px;
-width: 55px;
-}
-.hud-corner::after {
-left: 26px;
-height: 55px;
-}
-.hud-radar {
-position: absolute;
-right: 4vw;
-top: 13vh;
-width: 190px;
-height: 190px;
-border: 1px solid rgba(255,255,255,0.10);
-border-radius: 50%;
-opacity: 0.45;
-box-shadow: inset 0 0 30px rgba(255,255,255,0.018);
-}
-.radar-ring {
-position: absolute;
-border: 1px solid rgba(255,255,255,0.075);
-border-radius: 50%;
-inset: 12%;
-}
-.ring-2 { inset: 28%; }
-.ring-3 { inset: 43%; }
-.radar-cross::before,
-.radar-cross::after {
-content: "";
-position: absolute;
-background: rgba(255,255,255,0.07);
-}
-.radar-cross::before {
-left: 0;
-right: 0;
-top: 50%;
-height: 1px;
-}
-.radar-cross::after {
-top: 0;
-bottom: 0;
-left: 50%;
-width: 1px;
-}
-.radar-sweep {
-position: absolute;
-left: 50%;
-top: 50%;
-width: 50%;
-height: 1px;
-transform-origin: left center;
-background: linear-gradient(90deg, rgba(255,255,255,0.45), transparent);
-animation: radarSweep 5s linear infinite;
-}
-.radar-dot {
-position: absolute;
-width: 4px;
-height: 4px;
-border-radius: 50%;
-background: var(--text-pure);
-box-shadow: 0 0 8px rgba(255,255,255,0.5);
-animation: radarPulse 2.2s ease-in-out infinite;
-}
-.dot-a { left: 28%; top: 35%; }
-.dot-b { left: 69%; top: 58%; animation-delay: -0.7s; }
-.dot-c { left: 53%; top: 76%; animation-delay: -1.4s; }
-.hud-network {
-position: absolute;
-inset: 0;
-width: 100%;
-height: 100%;
-opacity: 0.16;
-}
-.hud-network path {
-fill: none;
-stroke: var(--text-pure);
-stroke-width: 0.08;
-stroke-dasharray: 1.2 1.8;
-animation: networkFlow 8s linear infinite;
-}
-.hud-node {
-position: absolute;
-display: flex;
-align-items: center;
-gap: 7px;
-font-family: var(--font-mono);
-font-size: 8px;
-color: var(--text-muted);
-opacity: 0.45;
-}
-.hud-node span {
-width: 5px;
-height: 5px;
-border: 1px solid var(--text-pure);
-border-radius: 50%;
-box-shadow: 0 0 8px rgba(255,255,255,0.25);
-animation: nodePulse 2s ease-in-out infinite;
-}
-.node-1 { left: 6vw; top: 25vh; }
-.node-2 { left: 27vw; top: 36vh; }
-.node-3 { right: 25vw; top: 39vh; }
-.node-4 { right: 7vw; top: 20vh; }
-.hud-readout {
-position: absolute;
-font-family: var(--font-mono);
-font-size: 8px;
-letter-spacing: 0.08em;
-display: flex;
-flex-direction: column;
-gap: 3px;
-opacity: 0.38;
-}
-.hud-readout span { color: var(--text-muted); }
-.hud-readout strong {
-color: var(--text-pure);
-font-size: 10px;
-letter-spacing: 0.15em;
-}
-.hud-readout em {
-color: var(--text-ghost);
-font-style: normal;
-}
-.readout-left { left: 30px; top: 38%; }
-.readout-right { right: 30px; bottom: 28%; text-align: right; }
-.hud-bottom-line {
-position: absolute;
-left: 30px;
-right: 30px;
-bottom: 18px;
-display: flex;
-justify-content: space-between;
-font: 7px var(--font-mono);
-letter-spacing: 0.16em;
-color: var(--text-ghost);
-opacity: 0.45;
-}
-.hud-scanline {
-position: absolute;
-left: 0;
-right: 0;
-top: -10px;
-height: 1px;
-background: var(--text-pure);
-opacity: 0.09;
-box-shadow: 0 0 14px rgba(255,255,255,0.12);
-animation: hudScan 9s linear infinite;
-}
-body.owner-mode .cyber-hud-bg {
-opacity: 0.78;
-}
-body.owner-mode .hud-corner {
-border-color: rgba(205,162,80,0.14);
-}
-body.owner-mode .hud-corner::before,
-body.owner-mode .hud-corner::after {
-background: var(--accent-premium);
-}
-body.owner-mode .hud-network path {
-stroke: var(--accent-premium);
-}
-body.owner-mode .radar-rings,
-body.owner-mode .hud-radar {
-border-color: rgba(205,162,80,0.12);
-}
-body.owner-mode .radar-sweep {
-background: linear-gradient(90deg, rgba(205,162,80,0.55), transparent);
-}
-body.owner-mode .radar-dot,
-body.owner-mode .hud-node span {
-background: var(--accent-premium);
-border-color: var(--accent-premium);
-box-shadow: 0 0 9px rgba(205,162,80,0.45);
-}
-body.owner-mode .hud-readout strong {
-color: var(--accent-premium);
-}
-body.owner-mode .hud-scanline {
-background: var(--accent-premium);
-box-shadow: 0 0 14px rgba(205,162,80,0.12);
-}
-@keyframes radarSweep {
-from { transform: rotate(0deg); }
-to { transform: rotate(360deg); }
-}
-@keyframes radarPulse {
-0%, 100% { opacity: 0.25; transform: scale(0.8); }
-50% { opacity: 1; transform: scale(1.35); }
-}
-@keyframes nodePulse {
-0%, 100% { opacity: 0.25; }
-50% { opacity: 1; }
-}
-@keyframes networkFlow {
-to { stroke-dashoffset: -20; }
-}
-@keyframes hudScan {
-0% { transform: translateY(0); opacity: 0; }
-10% { opacity: 0.09; }
-90% { opacity: 0.09; }
-100% { transform: translateY(110vh); opacity: 0; }
-}
-@media (max-width: 700px) {
-.cyber-hud-bg { opacity: 0.42; }
-.hud-radar {
-width: 120px;
-height: 120px;
-right: -20px;
-top: 18vh;
-}
-.hud-node { font-size: 6px; }
-.node-2, .node-3 { display: none; }
-.hud-readout { font-size: 6px; }
-.readout-right { right: 12px; }
-.hud-bottom-line { left: 12px; right: 12px; }
-.bg-tactical-watermark { max-width: 85vw; }
-}
-@media (prefers-reduced-motion: reduce) {
-.radar-sweep,
-.radar-dot,
-.hud-node span,
-.hud-network path,
-.hud-scanline {
-animation: none !important;
-}
-}
-/* 🕒 สไตล์สำหรับนาฬิกา Real-time มุมขวาบน */
-.tactical-clock {
-position: fixed;
-top: 20px;
-right: 24px;
-background-color: var(--bg-surface);
-border: 1px solid var(--border-subtle);
-color: var(--text-pure);
-font-family: var(--font-mono);
-font-size: 0.8rem;
-padding: 8px 16px;
-border-radius: 4px;
-z-index: 999;
-box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
-display: flex;
-align-items: center;
-gap: 8px;
-backdrop-filter: blur(10px);
-transition: var(--transition-tactical);
-}
-.tactical-clock::before {
-content: "SYS_TIME //";
-color: var(--text-muted);
-font-weight: 600;
-}
-/* 📱 🦾 ปุ่มลอยตัวสไตล์ iPhone AssistiveTouch */
-.assistive-touch-btn {
-position: fixed;
-bottom: 40px;
-right: 40px;
-width: 56px;
-height: 56px;
-background: rgba(255, 255, 255, 0.1);
-border: 2px solid rgba(255, 255, 255, 0.3);
-border-radius: 50%;
-cursor: pointer;
-z-index: 9999;
-box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2);
-backdrop-filter: blur(12px);
--webkit-backdrop-filter: blur(12px);
-display: flex;
-align-items: center;
-justify-content: center;
-transition: border-color 0.3s, background-color 0.3s, transform 0.1s;
-}
-.assistive-touch-btn::before {
-content: "";
-width: 28px;
-height: 28px;
-background: rgba(255, 255, 255, 0.7);
-border-radius: 50%;
-box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
-transition: var(--transition-tactical);
-}
-body.owner-mode .assistive-touch-btn {
-background: rgba(205, 162, 80, 0.15);
-border-color: rgba(205, 162, 80, 0.5);
-box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 0 15px rgba(205, 162, 80, 0.3);
-}
-body.owner-mode .assistive-touch-btn::before {
-background: var(--accent-premium);
-}
-.assistive-touch-btn:active {
-transform: scale(0.92);
-}
-/* 👁️ Unique Visitor Counter */
-.visitor-counter {
-position: fixed;
-top: 68px;
-right: 24px;
-z-index: 999;
-display: flex;
-align-items: center;
-gap: 8px;
-padding: 8px 14px;
-background-color: var(--bg-surface);
-border: 1px solid var(--border-subtle);
-border-radius: 4px;
-color: var(--text-pure);
-font-family: var(--font-mono);
-font-size: 0.75rem;
-box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
-backdrop-filter: blur(10px);
-user-select: none;
-}
-.visitor-counter-label {
-color: var(--text-muted);
-font-weight: 600;
-}
-body.owner-mode .visitor-counter {
-border-color: var(--border-active);
-box-shadow: 0 0 15px rgba(205, 162, 80, 0.12);
-}
-/* 🪟 🔐 Tactical Login Modal Layout */
-.modal-overlay {
-position: fixed;
-top: 0; left: 0;
-width: 100%; height: 100%;
-background: rgba(0, 0, 0, 0.85);
-backdrop-filter: blur(8px);
-z-index: 10000;
-display: flex;
-align-items: center;
-justify-content: center;
-opacity: 0;
-pointer-events: none;
-transition: opacity 0.4s ease;
-}
-.modal-overlay.open {
-opacity: 1;
-pointer-events: auto;
-}
-.tactical-modal {
-background: #0f0f0f;
-border: 1px solid var(--border-subtle);
-border-radius: 6px;
-width: 100%;
-max-width: 420px;
-padding: 32px;
-position: relative;
-box-shadow: 0 20px 50px rgba(0,0,0,0.9);
-transform: scale(0.95) translateY(20px);
-transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
-}
-.modal-overlay.open .tactical-modal {
-transform: scale(1) translateY(0);
-}
-.modal-header {
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 24px;
-border-bottom: 1px dashed var(--border-subtle);
-padding-bottom: 12px;
-}
-.modal-header h3 {
-font-family: var(--font-mono);
-font-size: 1.1rem;
-letter-spacing: 0.05em;
-color: var(--accent-premium);
-}
-.btn-close-modal {
-background: transparent;
-border: none;
-color: var(--text-muted);
-font-family: var(--font-mono);
-cursor: pointer;
-font-size: 0.9rem;
-transition: var(--transition-tactical);
-}
-.btn-close-modal:hover { color: #ff4a4a; }
-.form-group {
-margin-bottom: 18px;
-}
-.form-group label {
-display: block;
-font-family: var(--font-mono);
-font-size: 0.75rem;
-color: var(--text-muted);
-margin-bottom: 6px;
-text-transform: uppercase;
-}
-.form-control {
-width: 100%;
-background: #161616;
-border: 1px solid var(--border-subtle);
-padding: 12px;
-border-radius: 4px;
-color: var(--text-pure);
-font-family: var(--font-sans);
-font-size: 0.95rem;
-transition: var(--transition-tactical);
-}
-.form-control:focus {
-outline: none;
-border-color: var(--border-active);
-background: #1c1c1c;
-}
-.form-control.code-font {
-font-family: var(--font-mono);
-letter-spacing: 0.1em;
-}
-.btn-submit-login {
-width: 100%;
-padding: 14px;
-background: var(--text-pure);
-color: var(--bg-base);
-border: 1px solid var(--text-pure);
-font-family: var(--font-mono);
-font-weight: 600;
-font-size: 0.9rem;
-border-radius: 4px;
-cursor: pointer;
-transition: var(--transition-tactical);
-}
-.btn-submit-login:hover {
-background: transparent;
-color: var(--text-pure);
-border-color: var(--border-active);
-}
-body.owner-mode .btn-submit-login {
-background: var(--accent-premium);
-color: #000;
-border-color: var(--accent-premium);
-}
-body.owner-mode .btn-submit-login:hover {
-background: transparent;
-color: var(--accent-premium);
-}
-/* 🚨 ปุ่มออกจากระบบสไตล์ Tactical Alert */
-.btn-logout {
-display: none;
-background: transparent;
-color: #ff5555;
-border: 1px solid rgba(255, 85, 85, 0.4);
-padding: 6px 14px;
-border-radius: 4px;
-font-family: var(--font-mono);
-font-size: 0.75rem;
-cursor: pointer;
-transition: var(--transition-tactical);
-margin-top: 12px;
-letter-spacing: 0.05em;
-}
-.btn-logout:hover {
-background: #ff5555;
-color: #ffffff;
-border-color: #ff5555;
-box-shadow: 0 0 15px rgba(255, 85, 85, 0.3);
-}
-body.owner-mode .btn-logout {
-display: inline-block;
-}
-.container {
-max-width: 750px;
-margin: 0 auto;
-padding: 80px 24px 60px 24px;
-position: relative;
-z-index: 10;
-}
-/* --- 🎭 SPA View Management --- */
-.view-container {
-transition: opacity 0.5s ease, transform 0.5s ease;
-opacity: 1;
-transform: translateY(0);
-display: block;
-}
-.view-container.hidden {
-display: none;
-opacity: 0;
-transform: translateY(15px);
-}
-/* --- 🦸‍♂️ View 1: Home/Hero Section --- */
-.hero-section {
-position: relative;
-text-align: left;
-padding-bottom: 48px;
-border-bottom: 1px dashed var(--border-subtle);
-margin-bottom: 40px;
-}
-.avatar-wrapper {
-position: relative;
-display: inline-block;
-margin-bottom: 24px;
-}
-.hero-avatar {
-width: 100px;
-height: 100px;
-border-radius: 4px;
-border: 1px solid var(--border-subtle);
-padding: 4px;
-background-color: var(--bg-surface);
-object-fit: cover;
-transition: var(--transition-tactical);
-}
-body.owner-mode .hero-avatar {
-border-color: var(--border-active);
-box-shadow: 0 0 15px rgba(205, 162, 80, 0.3);
-}
-.hero-section h1 {
-font-size: 3rem;
-font-weight: 800;
-letter-spacing: -0.05em;
-margin-bottom: 8px;
-text-transform: uppercase;
-transition: color 0.5s ease;
-}
-body.owner-mode .hero-section h1 {
-color: var(--accent-premium);
-text-shadow: 0 0 20px rgba(205, 162, 80, 0.2);
-}
-.hero-section h2 {
-font-family: var(--font-mono);
-font-size: 1.1rem;
-color: var(--text-muted);
-font-weight: 400;
-}
-/* --- 🧩 Reusable Card --- */
-.card {
-background-color: var(--bg-surface);
-border: 1px solid var(--border-subtle);
-border-radius: 4px;
-padding: 28px;
-margin-bottom: 20px;
-position: relative;
-box-shadow: var(--glow-premium);
-transition: var(--transition-tactical), box-shadow 0.8s ease;
-backdrop-filter: blur(10px);
-}
-.card:hover {
-border-color: var(--border-active);
-background-color: var(--bg-surface-hover);
-}
-.card-title {
-font-size: 1.25rem;
-font-weight: 600;
-margin-bottom: 12px;
-display: flex;
-align-items: center;
-gap: 10px;
-}
-.card-title::before {
-content: '■';
-font-size: 0.7rem;
-color: var(--accent-premium);
-}
-.card p {
-color: var(--text-muted);
-font-size: 0.95rem;
-margin-bottom: 20px;
-}
-.card-actions {
-display: flex;
-gap: 12px;
-flex-wrap: wrap;
-}
-/* --- 🔘 Unified Tactical Buttons Standard --- */
-.btn-primary, .btn-back {
-display: inline-flex;
-align-items: center;
-justify-content: center;
-gap: 8px;
-background-color: var(--bg-surface);
-color: var(--text-pure);
-padding: 10px 20px;
-border-radius: 4px;
-text-decoration: none;
-font-family: var(--font-mono);
-font-size: 0.85rem;
-font-weight: 600;
-border: 1px solid var(--border-subtle);
-cursor: pointer;
-transition: var(--transition-tactical);
-backdrop-filter: blur(10px);
-}
-.btn-primary:hover, .btn-back:hover {
-background-color: var(--bg-surface-hover);
-color: var(--text-pure);
-border-color: var(--border-active);
-box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
-}
-body.owner-mode .btn-primary:hover,
-body.owner-mode .btn-back:hover {
-box-shadow: 0 0 15px rgba(205, 162, 80, 0.2);
-}
-
-/* [NEW] ปุ่มเข้าหน้า Personal Tools (ซ่อนถ้าไม่ใช่ Owner) */
-.btn-personal-access {
-    display: none; 
-    border-color: var(--accent-premium);
-    color: var(--accent-premium);
-}
-body.owner-mode .btn-personal-access {
-    display: inline-flex;
-}
-
-/* --- 🎛️ View 2 & 3: Works & Tools Grid Buttons --- */
-.works-header {
-display: flex;
-justify-content: space-between;
-align-items: center;
-padding-bottom: 24px;
-border-bottom: 1px dashed var(--border-subtle);
-margin-bottom: 32px;
-gap: 12px;
-}
-.works-header h2 {
-font-family: var(--font-mono);
-font-size: 1.5rem;
-font-weight: 600;
-}
-.header-actions {
-display: flex;
-gap: 8px;
-}
-.tactical-grid {
-display: grid;
-grid-template-columns: repeat(1, 1fr);
-gap: 12px;
-margin-bottom: 32px;
-}
-@media (min-width: 600px) {
-.tactical-grid {
-grid-template-columns: repeat(2, 1fr);
-}
-.full-width-btn {
-grid-column: span 2;
-}
-}
-.btn-tactical {
-background-color: var(--bg-surface);
-border: 1px solid var(--border-subtle);
-color: var(--text-pure);
-font-family: var(--font-mono);
-font-size: 0.85rem;
-padding: 20px;
-border-radius: 4px;
-cursor: pointer;
-text-align: left;
-transition: var(--transition-tactical);
-display: flex;
-flex-direction: column;
-gap: 4px;
-backdrop-filter: blur(10px);
-text-decoration: none;
-}
-.btn-tactical span.num {
-color: var(--text-muted);
-font-size: 0.75rem;
-}
-.btn-tactical span.label {
-font-weight: 600;
-letter-spacing: 0.05em;
-}
-.btn-tactical:hover, .btn-tactical.active {
-border-color: var(--border-active);
-background-color: var(--bg-surface-hover);
-box-shadow: 0 0 15px rgba(255, 255, 255, 0.03);
-}
-body.owner-mode .btn-tactical:hover,
-body.owner-mode .btn-tactical.active {
-box-shadow: 0 0 15px rgba(205, 162, 80, 0.15);
-}
-.btn-tool-item {
-justify-content: center;
-align-items: center;
-text-align: center;
-}
-.display-panel {
-background-color: rgba(5, 5, 5, 0.8);
-border: 1px solid var(--border-subtle);
-border-radius: 4px;
-padding: 24px;
-min-height: 150px;
-font-family: var(--font-mono);
-font-size: 0.9rem;
-position: relative;
-box-shadow: var(--glow-premium);
-transition: box-shadow 0.8s ease;
-}
-.display-panel::before {
-content: "CONSOLE_OUTPUT";
-font-size: 0.7rem;
-color: var(--text-ghost);
-position: absolute;
-top: 8px; right: 12px;
-}
-.panel-content {
-color: var(--text-muted);
-white-space: pre-line;
-line-height: 1.8;
-}
-/* Typewriter Cursor */
-.cursor-blink {
-display: inline-block;
-width: 8px;
-height: 15px;
-background-color: var(--text-pure);
-animation: blink 1s step-end infinite;
-vertical-align: middle;
-margin-left: 2px;
-}
-body.owner-mode .cursor-blink {
-background-color: var(--accent-premium);
-}
-@keyframes blink { 50% { opacity: 0; } }
-/* --- 🔔 Toast Notifications --- */
-#toast-container {
-position: fixed;
-top: 20px;
-left: 50%;
-transform: translateX(-50%);
-z-index: 10001;
-display: flex;
-flex-direction: column;
-gap: 10px;
-pointer-events: none;
-}
-.toast {
-background: #121212;
-color: #fff;
-border: 1px solid var(--border-subtle);
-padding: 12px 24px;
-border-radius: 4px;
-font-family: var(--font-mono);
-font-size: 0.85rem;
-box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards, fadeOut 0.4s ease 2.5s forwards;
-display: flex;
-align-items: center;
-gap: 10px;
-}
-.toast.error { border-color: #ff5555; color: #ff5555; }
-.toast.success { border-color: #cda250; color: #cda250; }
-@keyframes slideDown {
-from { opacity: 0; transform: translateY(-20px); }
-to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeOut {
-to { opacity: 0; transform: translateY(-10px); }
-}
-
-/* =========================================================
-🤖 AI SEARCH (PUBLIC - สำหรับผู้เข้าชมทั่วไป)
-========================================================= */
-.search-card {
-  margin-bottom: 24px;
-}
-.search-box-wrapper {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.search-input {
-  flex: 1;
-  background: #0a0a0a;
-  border: 1px solid var(--border-subtle);
-  padding: 12px 16px;
-  border-radius: 4px;
-  color: var(--text-pure);
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  transition: var(--transition-tactical);
-}
-.search-input:focus {
-  outline: none;
-  border-color: var(--border-active);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-}
-.btn-search {
-  padding: 12px 20px;
-  background: var(--text-pure);
-  color: var(--bg-base);
-  border: 1px solid var(--text-pure);
-  font-family: var(--font-mono);
-  font-weight: 600;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: var(--transition-tactical);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-}
-.btn-search:hover {
-  background: transparent;
-  color: var(--text-pure);
-  border-color: var(--border-active);
-}
-.btn-search:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn-danger {
-  background: rgba(239, 68, 68, 0.15) !important;
-  color: #ef4444 !important;
-  border: 1px solid rgba(239, 68, 68, 0.3) !important;
-}
-.btn-danger:hover {
-  background: #ef4444 !important;
-  color: #fff !important;
-}
-body.owner-mode .btn-search {
-  background: var(--accent-premium);
-  color: #000;
-  border-color: var(--accent-premium);
-}
-body.owner-mode .btn-search:hover {
-  background: transparent;
-  color: var(--accent-premium);
-}
-.chips {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-}
-.chip {
-  padding: 6px 12px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  font-size: 12px;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.chip:hover {
-  border-color: var(--accent-premium);
-  color: var(--text-pure);
-  transform: translateY(-1px);
-}
-#ai-status-box {
-  font-size: 12px;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  min-height: 20px;
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-#ai-status-box.err { color: #ef4444; }
-#ai-status-box.ok { color: #10b981; }
-.ai-results-panel {
-  display: none;
-  background-color: rgba(5, 5, 5, 0.85);
-  border: 1px solid var(--border-subtle);
-  border-radius: 4px;
-  padding: 20px;
-  font-family: var(--font-sans);
-  font-size: 0.92rem;
-  position: relative;
-  box-shadow: var(--glow-premium);
-  margin-top: 16px;
-  max-height: 400px;
-  overflow-y: auto;
-}
-.ai-results-panel.active {
-  display: block;
-}
-.ai-result-body {
-  color: var(--text-pure);
-  line-height: 1.7;
-}
-.ai-result-body:empty::before {
-  content: "คำตอบจาก AI จะแสดงที่นี่...";
-  color: var(--text-ghost);
-  font-family: var(--font-mono);
-}
-.ai-result-body p { margin-bottom: 0.8em; }
-.ai-result-body ul, .ai-result-body ol { padding-left: 20px; margin-bottom: 0.8em; }
-.ai-result-body li { margin-bottom: 4px; }
-.ai-result-body strong { color: var(--text-pure); }
-.ai-result-body code {
-  background: rgba(255,255,255,0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.85em;
-  font-family: var(--font-mono);
-  color: #10b981;
-}
-.dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #10b981;
-  animation: pulse 1s infinite alternate;
-}
-@keyframes pulse {
-  0% { opacity: 0.2; transform: scale(0.8); }
-  100% { opacity: 1; transform: scale(1.2); }
-}
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #262b36;
+    --text: #e6e8ee;
+    --muted: #8a93a6;
+    --accent: #7c5cff;
+    --accent-2: #22d3ee;
+    --danger: #ef4444;
+    --ok: #22c55e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(1200px 600px at 20% -10%, #1b1f2e 0%, transparent 60%),
+                radial-gradient(900px 500px at 110% 10%, #13202b 0%, transparent 60%),
+                var(--bg);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    width: 100%;
+    max-width: 520px;
+    background: linear-gradient(180deg, var(--panel), #12151c);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45);
+  }
+  h1 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  p.sub { margin: 0 0 22px; color: var(--muted); font-size: 14px; }
+  label { display:block; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .field {
+    display: flex;
+    gap: 8px;
+    background: #0c0f14;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px 6px 6px 14px;
+    transition: border-color .2s;
+  }
+  .field:focus-within { border-color: var(--accent); }
+  .field input {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: var(--text);
+    font-size: 15px;
+    padding: 10px 0;
+    font-family: "JetBrains Mono", monospace;
+  }
+  button {
+    background: linear-gradient(135deg, var(--accent), #5b8cff);
+    color: white;
+    border: 0;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .1s, opacity .2s;
+  }
+  button:hover { transform: translateY(-1px); }
+  button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  .row { display:flex; gap:10px; margin-top: 14px; }
+  .ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .status {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--muted);
+    min-height: 20px;
+  }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--danger); }
+  .hint {
+    margin-top: 22px;
+    font-size: 12px;
+    color: var(--muted);
+    background: #0c0f14;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    line-height: 1.6;
+  }
+  code { color: var(--accent-2); }
 </style>
 </head>
 <body>
-<img src="shin.png" alt="Shinichi Tactical Logo" class="bg-tactical-watermark">
-<div class="cyber-hud-bg" aria-hidden="true">
-<div class="hud-corner hud-corner-tl"></div>
-<div class="hud-corner hud-corner-tr"></div>
-<div class="hud-corner hud-corner-bl"></div>
-<div class="hud-corner hud-corner-br"></div>
-<div class="hud-radar">
-<div class="radar-ring ring-1"></div>
-<div class="radar-ring ring-2"></div>
-<div class="radar-ring ring-3"></div>
-<div class="radar-cross"></div>
-<div class="radar-sweep"></div>
-<i class="radar-dot dot-a"></i>
-<i class="radar-dot dot-b"></i>
-<i class="radar-dot dot-c"></i>
-</div>
-<div class="hud-node node-1"><span></span><b>NODE_01</b></div>
-<div class="hud-node node-2"><span></span><b>NODE_07</b></div>
-<div class="hud-node node-3"><span></span><b>NODE_12</b></div>
-<div class="hud-node node-4"><span></span><b>NODE_24</b></div>
-<svg class="hud-network" viewBox="0 0 100 100" preserveAspectRatio="none">
-<path d="M5 23 L27 34 L48 22 L72 38 L96 18"></path>
-<path d="M8 77 L28 62 L51 72 L70 55 L94 76"></path>
-<path d="M27 34 L28 62"></path>
-<path d="M48 22 L51 72"></path>
-<path d="M72 38 L70 55"></path>
-</svg>
-<div class="hud-readout readout-left">
-<span>UPLINK_STATUS</span>
-<strong>STABLE</strong>
-<em>LATENCY 08ms</em>
-</div>
-<div class="hud-readout readout-right">
-<span>SECURITY_LAYER</span>
-<strong>ACTIVE</strong>
-<em>ENCRYPTION // AES</em>
-</div>
-<div class="hud-bottom-line">
-<span>TACTICAL_INTERFACE // 07</span>
-<span>SYS.ONLINE</span>
-<span>CHANNEL_SECURE</span>
-</div>
-<div class="hud-scanline"></div>
-</div>
-<div id="sys-clock" class="tactical-clock">00:00:00</div>
-<div id="visitor-counter" class="visitor-counter" aria-live="polite">
-<span class="visitor-counter-label">VISITORS //</span>
-<span id="visitor-count">—</span>
-</div>
-<div id="toast-container"></div>
-<div id="assistive-btn" class="assistive-touch-btn" onclick="toggleModal(true)"></div>
-<div id="login-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
-<div class="tactical-modal">
-<div class="modal-header">
-<h3 id="modal-title">// OWNER AUTHENTICATION</h3>
-<button class="btn-close-modal" onclick="toggleModal(false)">[ X ]</button>
-</div>
-<form id="login-form">
-<div class="form-group">
-<label>Email Address</label>
-<input type="email" id="login-email" class="form-control" required placeholder="owner@domain.com">
-</div>
-<div class="form-group">
-<label>Username</label>
-<input type="text" id="login-user" class="form-control" placeholder="shinichi_admin">
-</div>
-<div class="form-group" id="old-pass-group">
-<label>Password (8 Characters)</label>
-<input type="password" id="login-pass" class="form-control code-font" required maxlength="8" placeholder="********">
-</div>
-<button type="submit" class="btn-submit-login">EXECUTE ACCESS</button>
-</form>
-</div>
-</div>
-<div class="container">
-<div id="view-home" class="view-container">
-<header class="hero-section">
-<div class="avatar-wrapper">
-<img src="my-profile.jpg" alt="Shinichi" class="hero-avatar">
-</div>
-<h1>SHINICHI</h1>
-<h2 id="role-tag">[ SUPPORTER ]</h2>
-<div>
-<button type="button" id="logout-btn" class="btn-logout">[ DEACTIVATE OWNER MODE ]</button>
-</div>
-</header>
+  <div class="card">
+    <h1>🔐 API Key Manager</h1>
+    <p class="sub">เก็บ API Key ไว้ใน Firebase Firestore (ไม่อยู่ในโค้ดฝั่ง client)</p>
 
-<!-- ✅ เพิ่ม: AI Search Card สำหรับผู้เข้าชมทั่วไป -->
-<section class="card search-card">
-  <h3 class="card-title">AI ASSISTANT // PUBLIC</h3>
-  <p style="margin-bottom:16px;">สอบถามเกี่ยวกับ Shinichi และเครื่องมือในเว็บนี้ (ตอบสั้น กระชับ)</p>
-  <div class="search-box-wrapper">
-    <input type="text" id="ai-query" class="search-input" placeholder="เช่น ชินอิจิคือใคร? มีเครื่องมืออะไรบ้าง?" />
-    <button id="ai-search-btn" class="btn-search">ASK</button>
-    <button id="ai-stop-btn" class="btn-search btn-danger" style="display:none;">STOP</button>
+    <label for="keyInput">API Key</label>
+    <div class="field">
+      <input id="keyInput" type="password" placeholder="sk-xxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
+      <button id="saveBtn">Save</button>
+    </div>
+
+    <div class="row">
+      <button id="loadBtn" class="ghost">Load from Firebase</button>
+      <button id="toggleBtn" class="ghost">Show / Hide</button>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div class="hint">
+      วิธีใช้: <br>
+      1) สร้างโปรเจกต์ Firebase → เปิด Firestore → สร้าง collection ชื่อ <code>config</code> → document <code>settings</code><br>
+      2) เติม <code>firebaseConfig</code> ด้านล่างในโค้ด<br>
+      3) กด <b>Save</b> เพื่อเก็บ key, กด <b>Load</b> เพื่อดึงกลับมาใช้
+    </div>
   </div>
-  <div class="chips">
-    <span class="chip">ชินอิจิคือใคร</span>
-    <span class="chip">มีเครื่องมืออะไรบ้าง</span>
-    <span class="chip">ติดต่อยังไง</span>
-  </div>
-  <div id="ai-result-panel" class="ai-results-panel">
-    <div class="ai-result-body" id="ai-result"></div>
-  </div>
-  <div id="ai-status-box"></div>
-</section>
 
-<main class="card">
-<h3 class="card-title">ขอขอบคุณ ผู้เข้าชมเว็บไซต์ทุกท่าน</h3>
-<p>เว็บไซต์นี้ จัดทำขึ้นเพื่อจัดเก็บผลงานของผู้สร้างเท่านั้น หากมีเครื่องมือไหนที่เป็นประโยชน์ สามารถนำไปใช้ได้เลย</p>
-<div class="card-actions">
-<button class="btn-primary" onclick="switchView('view-works')">VIEW WORK</button>
-<button class="btn-primary" onclick="switchView('view-tools')">VIEW TOOLS</button>
-<button class="btn-primary btn-personal-access" onclick="switchView('view-personal')">PERSONAL TOOLS</button>
-</div>
-</main>
-</div>
-<div id="view-works" class="view-container hidden">
-<header class="works-header">
-<h2>// Job description (มนุษย์เป็ด)</h2>
-<div class="header-actions">
-<button class="btn-back" onclick="switchView('view-home')">[ HOME ]</button>
-</div>
-</header>
-<section class="tactical-grid">
-<button class="btn-tactical" onclick="filterWork(1, this)">
-<span class="num">MG UBONRATCHATHANI // 01</span>
-<span class="label">MG MASTER</span>
-</button>
-<button class="btn-tactical" onclick="filterWork(2, this)">
-<span class="num">MG UBONRATCHATHANI // 02</span>
-<span class="label">MARKETING</span>
-</button>
-<button class="btn-tactical" onclick="filterWork(3, this)">
-<span class="num">MG UBONRATCHATHANI // 03</span>
-<span class="label">IT SUPPORT</span>
-</button>
-<button class="btn-tactical" onclick="filterWork(4, this)">
-<span class="num">MG UBONRATCHATHANI // 04</span>
-<span class="label">ADMIN / Stock</span>
-</button>
-<button class="btn-tactical full-width-btn" onclick="filterWork(5, this)">
-<span class="num">MG UBONRATCHATHANI // 05</span>
-<span class="label">Developer </span>
-</button>
-</section>
-<section class="display-panel">
-<div id="panel-text" class="panel-content">
-> ระบบพร้อมทำงาน. โปรดเลือกโมดูลเพื่อดูรายละเอียด...<span class="cursor-blink"></span>
-</div>
-</section>
-</div>
-<div id="view-tools" class="view-container hidden">
-<header class="works-header">
-<h2>// UTILITY TOOLS (เครื่องมือ)</h2>
-<div class="header-actions">
-<button class="btn-back" onclick="switchView('view-works')">[ WORKS ]</button>
-<button class="btn-back" onclick="switchView('view-home')">[ HOME ]</button>
-</div>
-</header>
-<section class="tactical-grid">
-<a href="https://shinichi69-app.github.io/AUTO-QUOTATION-SYSTEM/" class="btn-tactical btn-tool-item" target="_blank" rel="noopener noreferrer">
-<span class="num">TOOL // 01</span>
-<span class="label">&gt; ใบเสนอราคารถยนต์ออนไลน์ &lt;</span>
-</a>
-<a href="https://shinichi69-app.github.io/Price-Schedule/" class="btn-tactical btn-tool-item" target="_blank" rel="noopener noreferrer">
-<span class="num">TOOL // 02</span>
-<span class="label">&gt; ตารางค่างวดออนไลน์ &lt;</span>
-</a>
-<a href="https://shinichi69-app.github.io/Delivery-Note/" class="btn-tactical btn-tool-item" target="_blank" rel="noopener noreferrer">
-<span class="num">TOOL // 03</span>
-<span class="label">&gt; ใบส่งมอบงาน&amp;ใบวางบิล &lt;</span>
-</a>
-<a href="https://shinichi69-app.github.io/po/" class="btn-tactical btn-tool-item" target="_blank" rel="noopener noreferrer">
-<span class="num">TOOL // 04</span>
-<span class="label">&gt; ใบสั่งซื้อ/ใบขออนุมัติ &lt;</span>
-</a>
-<a href="https://shinichi69-app.github.io/Financial-Plan/" class="btn-tactical btn-tool-item" target="_blank" rel="noopener noreferrer">
-<span class="num">TOOL // 05</span>
-<span class="label">&gt; แอปบันทึกรายรับ-รายจ่าย &lt;</span>
-</a>
-<a href="https://shinichi69-app.github.io/Clock-Dashboard/" class="btn-tactical btn-tool-item" target="_blank" rel="noopener noreferrer">
-<span class="num">TOOL // 06</span>
-<span class="label">&gt; แอปเช็คเวลาต่างประเทศ &lt;</span>
-</a>
-<a href="https://shinichi69-app.github.io/health/" class="btn-tactical btn-tool-item" target="_blank" rel="noopener noreferrer">
-<span class="num">TOOL // 07</span>
-<span class="label">&gt; แอปสุขภาพ &lt;</span>
-</a>
-<a href="https://shinichi69-app.github.io/Qr-code-free/" class="btn-tactical btn-tool-item" target="_blank" rel="noopener noreferrer">
-<span class="num">TOOL // 08</span>
-<span class="label">&gt; สร้าง QRCODE FREE  &lt;</span>
-</a>
-<a href="" class="btn-tactical btn-tool-item" target="_blank" rel="noopener noreferrer">
-<span class="num">TOOL // 09</span>
-<span class="label">&gt; รอเพิ่ม &lt;</span>
-</a>
-<a href="" class="btn-tactical btn-tool-item" target="_blank" rel="noopener noreferrer">
-<span class="num">TOOL // 10</span>
-<span class="label">&gt; รอเพิ่ม &lt;</span>
-</a>
-</section>
-</div>
-
-<div id="view-personal" class="view-container hidden">
-<header class="works-header">
-<h2>// PERSONAL ACCESS (ส่วนตัว)</h2>
-<div class="header-actions">
-<button class="btn-back" onclick="switchView('view-home')">[ HOME ]</button>
-</div>
-</header>
-<section class="tactical-grid">
-    <a href="https://shinichi69-app.github.io/office-day/" class="btn-tactical btn-tool-item">
-        <span class="num">LINK // 01</span>
-        <span class="label">&gt; Marketing sistem &lt;</span>
-    </a>
-    <a href="https://imarketing.mgthai.com/cas/login?service=https://imarketing.mgthai.com/epc/shiro-cas" class="btn-tactical btn-tool-item">
-        <span class="num">LINK // 02</span>
-        <span class="label">&gt; IMARKETING &lt;</span>
-    </a>
-    <a href="https://mgsales.froggenius.com/backend/login.html" class="btn-tactical btn-tool-item">
-        <span class="num">LINK // 03</span>
-        <span class="label">&gt; BACKEND MGSALE &lt;</span>
-    </a>
-    <a href="https://partner.evolt.co.th/admin/login" class="btn-tactical btn-tool-item">
-        <span class="num">LINK // 04</span>
-        <span class="label">&gt; BACKEND EVOLT &lt;</span>
-    </a>
-    <a href="https://epdi.mgthai.com/signin?redirect=%2Fdealer%2Fstate%2Fnew" class="btn-tactical btn-tool-item">
-        <span class="num">LINK // 05</span>
-        <span class="label">&gt; BACKEND EPDI &lt;</span>
-    </a>
-    <a href="https://console.firebase.google.com/u/0/" class="btn-tactical btn-tool-item">
-        <span class="num">LINK // 06</span>
-        <span class="label">&gt; BACKEND FIREBASE &lt;</span>
-    </a>
-    <a href="https://docs.google.com/spreadsheets/d/1uO4d4cUUxjsjPbObFo5C2G3PyyYyQZrwygxPZIRv4zg/edit?gid=9102601#gid=9102601" class="btn-tactical btn-tool-item">
-        <span class="num">LINK // 07</span>
-        <span class="label">&gt; Report MG &lt;</span>
-    </a>
-</section>
-</div>
-
-</div>
-<script>
-(() => {
-'use strict';
-const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => [...document.querySelectorAll(selector)];
-
-window.showToast = function(message, type = 'success') {
-const container = $('#toast-container');
-const toast = document.createElement('div');
-toast.className = `toast ${type}`;
-toast.innerHTML = type === 'error' ? `[ ! ] ${message}` : `[ OK ] ${message}`;
-container.appendChild(toast);
-setTimeout(() => {
-if (toast.parentNode) toast.parentNode.removeChild(toast);
-}, 3000);
-};
-
-window.toggleModal = function(show) {
-const modal = $('#login-modal');
-const form = $('#login-form');
-if (!modal) return;
-modal.classList.toggle('open', show);
-modal.setAttribute('aria-hidden', String(!show));
-if (!show && form) form.reset();
-if (show) setTimeout(() => $('#login-pass')?.focus(), 120);
-};
-
-window.switchView = function(viewId) {
-const target = document.getElementById(viewId);
-if (!target) return;
-$$('.view-container').forEach(view => {
-if (view.id === viewId) {
-view.classList.remove('hidden');
-setTimeout(() => view.style.opacity = '1', 50);
-} else {
-view.classList.add('hidden');
-view.style.opacity = '0';
-}
-});
-window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-
-const workData = {
-1: '> [MG MASTER]\n- พัฒนาทักษะการขาย และข้อมูลผลิตภัณฑ์\n- เพื่อสร้างทีมขายคุณภาพ',
-2: '> [MARKETING]\n- วางแผนกลยุทธ์การตลาดทั้งออฟไลน์ และออนไลน์\n- ผลิตสื่อเพื่อเพิ่มโอกาสทางการขาย',
-3: '> [IT SUPPORT]\n- แก้ไขปัญหาระบบ Network ภายในองค์กร\n- ซ่อมบำรุงเบื้องต้น',
-4: '> [ADMIN / Stock]\n- บริหารจัดการระบบคลังสินค้า\n- แก้ปัญหาและประสานงานระหว่างลูกค้ากับพนักงาน\n- ดูแลระบบงานขาย',
-5: '> [Developer]\n- พัฒนาเว็บและแอปพลิเคชัน\n- ออกแบบ UI/UX\n- วางโครงสร้าง Database พื้นฐาน โดยใช้ระบบ AI'
-};
-
-let typingTimer;
-window.filterWork = function(id, btnElement) {
-$$('.btn-tactical').forEach(btn => btn.classList.remove('active'));
-if (btnElement) btnElement.classList.add('active');
-const textDisplay = $('#panel-text');
-if (!textDisplay) return;
-clearTimeout(typingTimer);
-textDisplay.innerHTML = '<span class="cursor-blink"></span>';
-const textToType = workData[id] || '> ERROR: DATA NOT FOUND.';
-let charIndex = 0;
-function typeWriter() {
-if (charIndex < textToType.length) {
-const char = textToType.charAt(charIndex) === '\n' ? '<br>' : textToType.charAt(charIndex);
-textDisplay.innerHTML = textDisplay.innerHTML.replace('<span class="cursor-blink"></span>', '') + char + '<span class="cursor-blink"></span>';
-charIndex++;
-typingTimer = setTimeout(typeWriter, 25);
-}
-}
-typeWriter();
-};
-
-function updateClock() {
-const clockEl = $('#sys-clock');
-if (clockEl) {
-clockEl.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
-}
-}
-
-function initVisitor() {
-const counterEl = $('#visitor-count');
-if (counterEl) counterEl.textContent = 'ONLINE';
-}
-
-document.addEventListener('keydown', (e) => {
-if (e.key === 'Escape') toggleModal(false);
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-setInterval(updateClock, 1000);
-updateClock();
-initVisitor();
-switchView('view-home');
-
-// ตั้งค่า marked options สำหรับ AI results
-if (typeof marked !== 'undefined') {
-  marked.setOptions({ breaks: true, gfm: true });
-}
-});
-
-/* =========================================================
-🤖 AI SEARCH ENGINE (PUBLIC - สำหรับผู้เข้าชมทั่วไป)
-========================================================= */
-const aiQueryEl = $("#ai-query");
-const aiSearchBtn = $("#ai-search-btn");
-const aiStopBtn = $("#ai-stop-btn");
-const aiResultEl = $("#ai-result");
-const aiResultPanel = $("#ai-result-panel");
-const aiStatusEl = $("#ai-status-box");
-
-let aiController = null;
-let aiRawBuffer = "";
-
-// ⚠️ สำคัญ: ใส่ Groq API Key ของคุณตรงนี้ (free tier ไม่เสียเงิน)
-const GROQ_API_KEY = "gsk_qHDsItJQfLqxYtOFaxUmWGdyb3FYPEH1D8s";
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "qwen/qwen3-32b";
-
-function setAiStatus(msg, cls) {
-  aiStatusEl.innerHTML = msg;
-  aiStatusEl.className = cls || "";
-}
-
-function setAiLoading(on) {
-  aiSearchBtn.disabled = on;
-  aiSearchBtn.textContent = on ? "PROCESSING..." : "ASK";
-  aiStopBtn.style.display = on ? "inline-flex" : "none";
-}
-
-// ✅ System Prompt ที่เน้นตอบสั้น กระชับ เกี่ยวข้องกับเว็บเท่านั้น
-const SYSTEM_PROMPT = `คุณคือผู้ช่วย AI ประจำเว็บไซต์ Portfolio ของ "Shinichi" (ชินอิจิ)
-
-กฎสำคัญ:
-1. ตอบสั้น กระชับ ไม่เกิน 3-5 บรรทัด
-2. ตอบเฉพาะเรื่องที่เกี่ยวข้องกับ Shinichi และเครื่องมือในเว็บนี้เท่านั้น
-3. หากถูกถามเรื่องอื่นที่ไม่เกี่ยวข้องกับเว็บนี้ ให้ตอบสุภาพว่า: "ขออภัยครับ ผมสามารถตอบคำถามเกี่ยวกับคุณชินอิจิและเครื่องมือในเว็บนี้เท่านั้นครับ"
-4. ใช้ Markdown แบบเรียบง่าย ไม่ต้องใส่ header ใหญ่
-
-ข้อมูลของ Shinichi:
-- บทบาท: MG Master (ขายรถ MG), Marketing, IT Support, Admin/Stock, Developer
-- สถานที่: MG อุบลราชธานี
-
-เครื่องมือฟรีในเว็บ (Utility Tools):
-1. ใบเสนอราคารถยนต์ออนไลน์
-2. ตารางค่างวดออนไลน์
-3. ใบส่งมอบงาน & ใบวางบิล
-4. ใบสั่งซื้อ / ใบขออนุมัติ
-5. แอปบันทึกรายรับ-รายจ่าย
-6. แอปเช็คเวลาต่างประเทศ
-7. แอปสุขภาพ
-8. สร้าง QR Code ฟรี
-
-ตอบคำถามเป็นภาษาไทย สั้น กระชับ ตรงประเด็น`;
-
-async function runAiSearch() {
-  const q = aiQueryEl.value.trim();
-  if (!q) {
-    setAiStatus("กรุณากรอกคำถามก่อน", "err");
-    return;
-  }
-  if (!GROQ_API_KEY || GROQ_API_KEY === "YOUR_GROQ_API_KEY_HERE") {
-    setAiStatus("API Key ยังไม่ได้ตั้งค่า กรุณาติดต่อผู้ดูแล", "err");
-    return;
-  }
-
-  aiRawBuffer = "";
-  aiResultEl.innerHTML = "";
-  aiResultPanel.classList.add("active");
-  setAiLoading(true);
-  setAiStatus('<span class="dot"></span>กำลังประมวลผล...', "");
-
-  aiController = new AbortController();
-
-  try {
-    const response = await fetch(GROQ_URL, {
-      method: "POST",
-      signal: aiController.signal,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        stream: true,
-        temperature: 0.3,
-        max_tokens: 300, // จำกัดความยาวคำตอบให้สั้น
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: q }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`HTTP ${response.status} — ${errText.slice(0, 200)}`);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop();
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-        const dataStr = trimmed.slice(5).trim();
-        if (dataStr === "[DONE]") continue;
-
-        try {
-          const json = JSON.parse(dataStr);
-          const chunk = json.choices?.[0]?.delta?.content || "";
-          if (chunk) {
-            aiRawBuffer += chunk;
-            aiResultEl.innerHTML = marked.parse(aiRawBuffer);
-          }
-        } catch (_) {}
-      }
-    }
-    
-    setAiStatus("ตอบเสร็จสิ้น ✓", "ok");
-
-  } catch (err) {
-    if (err.name === "AbortError") {
-      setAiStatus("ยกเลิกแล้ว", "");
-    } else {
-      setAiStatus("Error: " + err.message, "err");
-    }
-  } finally {
-    setAiLoading(false);
-    aiController = null;
-  }
-}
-
-// Event listeners
-if (aiSearchBtn) aiSearchBtn.addEventListener("click", runAiSearch);
-if (aiQueryEl) aiQueryEl.addEventListener("keydown", e => { if (e.key === "Enter") runAiSearch(); });
-if (aiStopBtn) aiStopBtn.addEventListener("click", () => aiController && aiController.abort());
-
-// Chip click handlers
-$$(".chip").forEach(chip => {
-  chip.addEventListener("click", () => {
-    aiQueryEl.value = chip.textContent;
-    runAiSearch();
-  });
-});
-})();
-</script>
+<!-- Firebase SDK -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-getAuth,
-signInWithEmailAndPassword,
-signInAnonymously,
-onAuthStateChanged,
-signOut
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {
-getFirestore,
-doc,
-getDoc,
-setDoc,
-updateDoc,
-increment,
-onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, doc, setDoc, getDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const firebaseConfig = {
-apiKey: "AIzaSyCGG103Vc3C7xhgW-4XQRU4K0OzuotLx-I",
-authDomain: "login-15303.firebaseapp.com",
-projectId: "login-15303",
-storageBucket: "login-15303.firebasestorage.app",
-messagingSenderId: "403564723749",
-appId: "1:403564723749:web:e57a87696ccb7e17b049cc",
-measurementId: "G-NX2PYPDR3G"
-};
+  // ⬇️ เติมค่าจาก Firebase Console ของคุณ
+  const firebaseConfig = {
+    apiKey: "YOUR_FIREBASE_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "xxxx",
+    appId: "xxxx"
+  };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const roleTag = document.getElementById('role-tag');
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
 
-// ตรวจสอบว่าเป็น owner จาก email (แทนที่ด้วยอีเมลของคุณ)
-const OWNER_EMAIL = "your-email@gmail.com"; // ⚠️ เปลี่ยนเป็นอีเมลของคุณ
+  const COLLECTION = "config";
+  const DOC_ID     = "settings";
+  const FIELD      = "myApiKey";   // ชื่อ field ที่เก็บ API key
 
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    const isOwner = user.email === OWNER_EMAIL;
-    if (isOwner) {
-      document.body.classList.add('owner-mode');
-      if (roleTag) roleTag.textContent = '[ OWNER ]';
-    } else {
-      document.body.classList.remove('owner-mode');
-      if (roleTag) roleTag.textContent = '[ SUPPORTER ]';
-    }
-  } else {
-    // Auto Anonymous login สำหรับ visitor (เพื่อให้ recordVisit ทำงานได้)
+  const $ = (id) => document.getElementById(id);
+  const status = (msg, type = "") => {
+    const el = $("status");
+    el.textContent = msg;
+    el.className = "status " + type;
+  };
+
+  // บันทึก API Key ลง Firestore
+  $("saveBtn").addEventListener("click", async () => {
+    const val = $("keyInput").value.trim();
+    if (!val) return status("กรุณาใส่ API Key", "err");
     try {
-      await signInAnonymously(auth);
-    } catch (err) {
-      console.warn("Anonymous login failed:", err);
+      await setDoc(doc(db, COLLECTION, DOC_ID), { [FIELD]: val, updatedAt: Date.now() });
+      status("✅ บันทึกสำเร็จ", "ok");
+    } catch (e) {
+      console.error(e);
+      status("❌ บันทึกไม่สำเร็จ: " + e.message, "err");
     }
-    document.body.classList.remove('owner-mode');
-    if (roleTag) roleTag.textContent = '[ SUPPORTER ]';
-  }
-});
+  });
 
-const loginForm = document.getElementById('login-form');
-if (loginForm) {
-loginForm.addEventListener('submit', async (e) => {
-e.preventDefault();
-const email = document.getElementById('login-email').value;
-const password = document.getElementById('login-pass').value;
-try {
-await signInWithEmailAndPassword(auth, email, password);
-window.showToast("ACCESS GRANTED: ยินดีต้อนรับกลับค่ะ", "success");
-window.toggleModal(false);
-loginForm.reset();
-} catch (error) {
-window.showToast("ACCESS DENIED: อีเมลหรือรหัสผ่านไม่ถูกต้อง", "error");
-}
-});
-}
+  // โหลด API Key จาก Firestore
+  $("loadBtn").addEventListener("click", async () => {
+    try {
+      const snap = await getDoc(doc(db, COLLECTION, DOC_ID));
+      if (!snap.exists()) return status("⚠️ ยังไม่มีข้อมูลใน Firestore", "err");
+      const key = snap.data()[FIELD];
+      $("keyInput").value = key || "";
+      status("✅ โหลดสำเร็จ", "ok");
+    } catch (e) {
+      console.error(e);
+      status("❌ โหลดไม่สำเร็จ: " + e.message, "err");
+    }
+  });
 
-const logoutBtn = document.getElementById('logout-btn');
-if (logoutBtn) {
-logoutBtn.addEventListener('click', async () => {
-try {
-await signOut(auth);
-window.showToast("LOGGED OUT: ออกจากระบบสำเร็จ", "success");
-} catch (error) {
-window.showToast("เกิดข้อผิดพลาดในการออกจากระบบ", "error");
-}
-});
-}
+  // Show/Hide password
+  $("toggleBtn").addEventListener("click", () => {
+    const i = $("keyInput");
+    i.type = i.type === "password" ? "text" : "password";
+  });
 
-const visitorDocRef = doc(db, "stats", "visitors");
-const visitorCountEl = document.getElementById('visitor-count');
-onSnapshot(visitorDocRef, (docSnap) => {
-if (docSnap.exists() && visitorCountEl) {
-visitorCountEl.textContent = docSnap.data().count.toLocaleString();
-} else if (visitorCountEl) {
-visitorCountEl.textContent = "0";
-}
-});
+  // === ฟังก์ชันสำหรับเรียกใช้ API Key ในส่วนอื่นของเว็บ ===
+  window.getApiKey = async () => {
+    const snap = await getDoc(doc(db, COLLECTION, DOC_ID));
+    return snap.exists() ? snap.data()[FIELD] : null;
+  };
 
-async function recordVisit() {
-  if (!auth.currentUser) return; // รอ auth ก่อน
-const hasVisited = localStorage.getItem('hasVisited_shinichi');
-if (!hasVisited) {
-try {
-const docSnap = await getDoc(visitorDocRef);
-if (!docSnap.exists()) {
-await setDoc(visitorDocRef, { count: 1 });
-} else {
-await updateDoc(visitorDocRef, { count: increment(1) });
-}
-localStorage.setItem('hasVisited_shinichi', 'true');
-} catch (error) {
-console.error("Visitor Counter Error:", error);
-if(visitorCountEl) visitorCountEl.textContent = "SYS_ERR";
-}
-}
-}
-
-// รอ auth แล้วค่อยบันทึก visit
-onAuthStateChanged(auth, (user) => {
-  if (user) recordVisit();
-});
+  // ตัวอย่างการใช้งาน:
+  // const key = await getApiKey();
+  // fetch("https://api.example.com/data", { headers: { Authorization: "Bearer " + key } });
 </script>
 </body>
 </html>
