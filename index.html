@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>J.A.R.V.I.S - Voice & API Assistant</title>
+<title>J.A.R.V.I.S - Groq Voice Assistant</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&display=swap');
 
@@ -666,7 +666,7 @@
     <div class="hex-deco"></div>
 
     <div class="hud-top">
-      <h1>J.A.R.V.I.S — VOICE & API ASSISTANT</h1>
+      <h1>J.A.R.V.I.S — GROQ NEURAL LINK</h1>
     </div>
 
     <div class="target-lock">TARGET LOCK: ACQUIRED</div>
@@ -678,7 +678,7 @@
     <div class="float-label fl-3">VOICE MODULE: TH</div>
     <div class="float-label fl-4">API STATUS: PENDING</div>
 
-    <div class="data-stream top">STABILIZED CORE OUTPUT: 98.7% // JARVIS ONLINE // TARGET LOCK: ACQUIRED // SYSTEM INTEGRITY: NOMINAL //</div>
+    <div class="data-stream top">GROQ INFERENCE ENGINE: ACTIVE // LLAMA-3 MODEL LOADED // TARGET LOCK: ACQUIRED // SYSTEM INTEGRITY: NOMINAL //</div>
     <div class="data-stream bottom">0x4F2A // 0x8B1C // 0x3D7E // 0xA5F0 // 0x6C29 // 0xE1D4 // 0x9B87 // 0x2F63 //</div>
 
     <div class="side-panel left">
@@ -692,7 +692,7 @@
 
     <div class="side-panel right">
       <div class="panel-line"><span class="label">LANG</span><span class="value">TH-TH</span></div>
-      <div class="panel-line"><span class="label">MODEL</span><span class="value">GPT-4</span></div>
+      <div class="panel-line"><span class="label">MODEL</span><span class="value">LLAMA-3</span></div>
       <div class="panel-line"><span class="label">TOKENS</span><span class="value" id="tokenVal">0</span></div>
       <div class="panel-line"><span class="label">REQ</span><span class="value" id="reqVal">0</span></div>
       <div class="panel-line"><span class="label">LATENCY</span><span class="value" id="latVal">— ms</span></div>
@@ -710,7 +710,7 @@
       <div class="status-display">
         <div class="system-text">J.A.R.V.I.S SYSTEM ONLINE</div>
         <div class="percent" id="corePercent">98.7%</div>
-        <div class="percent-label">STABILIZED CORE OUTPUT</div>
+        <div class="percent-label">GROQ INFERENCE OUTPUT</div>
       </div>
 
       <div class="waveform" id="waveform"></div>
@@ -722,7 +722,7 @@
 
       <div class="api-section">
         <span class="lock-icon" id="lockIcon">🔒</span>
-        <input type="password" id="apiKeyInput" placeholder="ยังไม่ได้ตั้งค่า KEY — ใส่ API Key ที่นี่...">
+        <input type="password" id="apiKeyInput" placeholder="ยังไม่ได้ตั้งค่า GROQ KEY — ใส่ API Key ที่นี่...">
         <button class="btn" onclick="saveKey()">SAVE</button>
         <button class="btn danger" onclick="deleteKey()">DELETE</button>
       </div>
@@ -794,7 +794,7 @@
   function saveKey() {
     const key = apiKeyInput.value.trim();
     if (key) {
-      localStorage.setItem('jarvis_api_key', key);
+      localStorage.setItem('jarvis_groq_key', key);
       statusVal.textContent = 'CONNECTED';
       statusVal.className = 'value success';
       document.getElementById('powerVal').textContent = '● ONLINE';
@@ -806,7 +806,7 @@
   }
 
   function deleteKey() {
-    localStorage.removeItem('jarvis_api_key');
+    localStorage.removeItem('jarvis_groq_key');
     apiKeyInput.value = '';
     statusVal.textContent = 'WAITING';
     statusVal.className = 'value warning';
@@ -817,7 +817,7 @@
   }
 
   // Load saved key
-  const savedKey = localStorage.getItem('jarvis_api_key');
+  const savedKey = localStorage.getItem('jarvis_groq_key');
   if (savedKey) {
     apiKeyInput.value = savedKey;
     statusVal.textContent = 'CONNECTED';
@@ -906,13 +906,13 @@
     }
   }
 
-  // ===== Process Command =====
+  // ===== Process Command (GROQ API) =====
   async function processCommand(text) {
     const apiKey = apiKeyInput.value.trim();
     
     if (!apiKey) {
-      speak("กรุณาใส่ API Key ก่อนใช้งานครับ");
-      showResponse("⚠ ERROR: No API Key configured");
+      speak("กรุณาใส่ Groq API Key ก่อนใช้งานครับ");
+      showResponse("⚠ ERROR: No Groq API Key configured");
       statusVal.textContent = 'NO KEY';
       statusVal.className = 'value warning';
       return;
@@ -926,23 +926,28 @@
     const startTime = Date.now();
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      // เรียกใช้ Groq API (OpenAI Compatible Endpoint)
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: "gpt-3.5-turbo",
+          model: "llama3-8b-8192", // หรือจะใช้ "llama-3.3-70b-versatile" ก็ได้
           messages: [
             { role: "system", content: "คุณคือ J.A.R.V.I.S ผู้ช่วยอัจฉริยะ ตอบสั้นๆ กระชับ เป็นภาษาไทย" },
             { role: "user", content: text }
           ],
-          max_tokens: 150
+          max_tokens: 256,
+          temperature: 0.7
         })
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error?.message || `HTTP ${response.status}`);
+      }
       
       const data = await response.json();
       const aiReply = data.choices[0].message.content;
@@ -960,7 +965,7 @@
       
     } catch (error) {
       console.error(error);
-      speak("ขออภัย เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      speak("ขออภัย เกิดข้อผิดพลาดในการเชื่อมต่อ Groq");
       showResponse(`❌ ERROR: ${error.message}`);
       statusVal.textContent = 'FAILED';
       statusVal.className = 'value warning';
