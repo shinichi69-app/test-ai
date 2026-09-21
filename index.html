@@ -5,564 +5,893 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>J.A.R.V.I.S - Voice & API Assistant</title>
 <style>
-    :root {
-        --jarvis-blue: #00f0ff;
-        --jarvis-dark-blue: #005577;
-        --jarvis-gold: #d4af37;
-        --bg-color: #050914;
-        --panel-bg: rgba(10, 25, 47, 0.7);
-        --active-red: #ff3366;
-    }
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&display=swap');
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', 'Courier New', monospace; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body {
-        background-color: var(--bg-color); color: #e0e0e0;
-        height: 100vh; overflow: hidden;
-        display: flex; justify-content: center; align-items: center;
-    }
+  body {
+    background: #000;
+    color: #00d4ff;
+    font-family: 'Rajdhani', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
 
-    /* ===== พื้นหลังโฮโลแกรม ===== */
-    .grid-background {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        background-image:
-            linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
-        background-size: 40px 40px; z-index: -1;
-        animation: moveGrid 20s linear infinite;
-    }
-    @keyframes moveGrid { from { transform: translateY(0); } to { transform: translateY(40px); } }
+  /* ===== Background Grid ===== */
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 20s linear infinite;
+    z-index: 0;
+  }
 
-    .hud-circle {
-        position: absolute; width: 600px; height: 600px;
-        border: 1px solid rgba(0, 240, 255, 0.15); border-radius: 50%;
-        animation: spin 30s linear infinite; z-index: -1;
-    }
-    .hud-circle::before {
-        content: ''; position: absolute; top: -20px; left: -20px; right: -20px; bottom: -20px;
-        border: 2px dashed rgba(0, 240, 255, 0.1); border-radius: 50%;
-        animation: spinReverse 20s linear infinite;
-    }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
-    @keyframes spinReverse { 100% { transform: rotate(-360deg); } }
+  @keyframes gridMove {
+    0% { transform: translate(0,0); }
+    100% { transform: translate(40px,40px); }
+  }
 
-    /* ===== โครงหลัก ===== */
-    .jarvis-container {
-        width: 100%; max-width: 900px; height: 92vh;
-        background: var(--panel-bg);
-        border: 1px solid var(--jarvis-dark-blue); border-radius: 20px;
-        box-shadow: 0 0 10px rgba(0, 240, 255, 0.3), inset 0 0 20px rgba(0,0,0,0.5);
-        backdrop-filter: blur(10px);
-        display: flex; flex-direction: column; overflow: hidden; position: relative;
-    }
+  /* ===== Scan Lines ===== */
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,212,255,0.015) 2px,
+      rgba(0,212,255,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
 
-    header {
-        padding: 15px 30px; border-bottom: 1px solid var(--jarvis-dark-blue);
-        display: flex; justify-content: space-between; align-items: center;
-        background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.05), transparent);
-    }
-    .logo { font-size: 1.4rem; font-weight: bold; color: var(--jarvis-blue); text-shadow: 0 0 10px var(--jarvis-blue); letter-spacing: 4px; }
-    .status { font-size: 0.75rem; color: var(--jarvis-gold); display: flex; align-items: center; gap: 8px; }
-    .status-dot { width: 8px; height: 8px; background: var(--jarvis-gold); border-radius: 50%; box-shadow: 0 0 5px var(--jarvis-gold); animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+  .scan-bar {
+    position: fixed;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(0,212,255,0.3), transparent);
+    animation: scanDown 4s linear infinite;
+    z-index: 999;
+    pointer-events: none;
+  }
 
-    /* ===== แถบตั้งค่า API Key ===== */
-    .api-bar {
-        padding: 10px 20px; border-bottom: 1px solid var(--jarvis-dark-blue);
-        display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-        background: rgba(0, 0, 0, 0.25);
-    }
-    .api-bar label { color: var(--jarvis-gold); font-size: 0.75rem; letter-spacing: 1px; white-space: nowrap; }
-    #apiKeyInput {
-        flex: 1; min-width: 150px; background: rgba(0,0,0,0.5);
-        border: 1px solid #333; color: #fff; padding: 8px 10px;
-        border-radius: 4px; font-family: monospace; font-size: 0.85rem; outline: none;
-    }
-    #apiKeyInput:focus { border-color: var(--jarvis-gold); box-shadow: 0 0 8px rgba(212,175,55,0.3); }
-    .mini-btn {
-        background: transparent; border: 1px solid var(--jarvis-dark-blue);
-        color: var(--jarvis-blue); padding: 7px 12px; font-size: 0.7rem;
-        cursor: pointer; border-radius: 4px; letter-spacing: 1px; transition: 0.3s;
-    }
-    .mini-btn:hover { background: rgba(0, 240, 255, 0.15); box-shadow: 0 0 8px rgba(0, 240, 255, 0.3); }
-    .mini-btn.danger { border-color: #772222; color: #ff6666; }
-    .mini-btn.danger:hover { background: rgba(255, 0, 0, 0.15); box-shadow: 0 0 8px rgba(255, 0, 0, 0.3); }
-    #keyStatus { font-size: 0.7rem; letter-spacing: 1px; }
-    #keyStatus.ok { color: var(--jarvis-gold); text-shadow: 0 0 5px var(--jarvis-gold); }
-    #keyStatus.no { color: #ff5555; text-shadow: 0 0 5px #ff5555; }
-    #modelSelect {
-        background: rgba(0,0,0,0.5); border: 1px solid #333; color: var(--jarvis-blue);
-        padding: 7px; border-radius: 4px; font-size: 0.75rem; outline: none; max-width: 260px;
-    }
+  @keyframes scanDown {
+    0% { top: -10px; }
+    100% { top: 100%; }
+  }
 
-    /* ===== พื้นที่แชท ===== */
-    .chat-area {
-        flex: 1; padding: 20px; overflow-y: auto;
-        display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth;
-    }
-    .chat-area::-webkit-scrollbar { width: 4px; }
-    .chat-area::-webkit-scrollbar-thumb { background: var(--jarvis-dark-blue); border-radius: 2px; }
+  /* ===== Vignette ===== */
+  .vignette {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.8) 100%);
+    pointer-events: none;
+    z-index: 998;
+  }
 
-    .message { max-width: 80%; animation: fadeIn 0.4s ease-out; }
-    .message.user { align-self: flex-end; text-align: right; }
-    .message.jarvis { align-self: flex-start; }
+  /* ===== Main Container ===== */
+  .container {
+    position: relative;
+    z-index: 10;
+    width: 900px;
+    height: 900px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    .msg-header { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; font-weight: bold; }
-    .user .msg-header { color: #fff; }
-    .jarvis .msg-header { color: var(--jarvis-blue); text-shadow: 0 0 5px var(--jarvis-blue); }
+  /* ===== Outer Ring ===== */
+  .outer-ring {
+    position: absolute;
+    width: 850px;
+    height: 850px;
+    border: 1px solid rgba(0,212,255,0.15);
+    border-radius: 50%;
+    animation: rotateSlow 60s linear infinite;
+  }
 
-    .msg-content { padding: 15px; border-radius: 4px; font-size: 0.95rem; line-height: 1.5; }
-    .user .msg-content { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-top-right-radius: 0; }
-    .jarvis .msg-content { background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.3); color: #cceeff; border-top-left-radius: 0; box-shadow: 0 0 10px rgba(0,240,255,0.3); }
+  .outer-ring::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    background: #00d4ff;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #00d4ff, 0 0 20px #00d4ff;
+  }
 
-    .error .msg-content { border-color: #ff3333 !important; color: #ff6666 !important; background: rgba(255,0,0,0.05) !important; }
-    .error .msg-header { color: #ff3333 !important; text-shadow: 0 0 5px #ff3333 !important; }
+  @keyframes rotateSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
 
-    pre { background: #000; color: #0f0; padding: 10px; border-radius: 4px; overflow-x: auto; margin-top: 10px; border: 1px solid #333; font-family: 'Courier New', monospace; font-size: 0.85rem; }
-    code { background: rgba(0,240,255,0.1); color: var(--jarvis-blue); padding: 1px 5px; border-radius: 3px; font-family: monospace; }
+  /* ===== HUD Corner Brackets ===== */
+  .hud-corner {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border: 2px solid rgba(0,212,255,0.4);
+  }
 
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .hud-corner.tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+  .hud-corner.tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+  .hud-corner.bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+  .hud-corner.br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
 
-    /* ===== แถบป้อนคำสั่ง & ปุ่มไมค์ ===== */
-    .input-area {
-        padding: 20px; border-top: 1px solid var(--jarvis-dark-blue);
-        background: rgba(0,0,0,0.3); display: flex; gap: 12px; align-items: center;
-    }
-    #userInput {
-        flex: 1; background: rgba(0, 20, 40, 0.6); border: 1px solid var(--jarvis-dark-blue);
-        color: var(--jarvis-blue); padding: 15px; font-size: 1rem; border-radius: 4px;
-        outline: none; transition: all 0.3s; font-family: inherit;
-    }
-    #userInput:focus { border-color: var(--jarvis-blue); box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
-    #userInput::placeholder { color: rgba(0, 240, 255, 0.4); }
+  /* ===== HUD Top Bar ===== */
+  .hud-top {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 20;
+  }
 
-    .icon-btn {
-        background: transparent; border: 1px solid var(--jarvis-blue); color: var(--jarvis-blue);
-        padding: 14px 18px; font-size: 1.1rem; cursor: pointer; border-radius: 4px;
-        transition: all 0.3s; display: flex; align-items: center; justify-content: center;
-    }
-    .icon-btn:hover { background: rgba(0, 240, 255, 0.15); box-shadow: 0 0 15px var(--jarvis-blue); }
-    
-    /* สถานะขณะเปิดไมค์ฟังเสียง */
-    .icon-btn.listening {
-        border-color: var(--active-red); color: var(--active-red);
-        animation: micPulse 1.2s infinite ease-in-out;
-        background: rgba(255, 51, 102, 0.15);
-    }
-    @keyframes micPulse {
-        0% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.6); }
-        70% { box-shadow: 0 0 0 12px rgba(255, 51, 102, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0); }
-    }
+  .hud-top h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    letter-spacing: 8px;
+    color: rgba(0,212,255,0.7);
+    text-shadow: 0 0 10px rgba(0,212,255,0.5);
+    animation: flicker 3s infinite;
+  }
 
-    #sendBtn {
-        background: transparent; border: 1px solid var(--jarvis-blue); color: var(--jarvis-blue);
-        padding: 14px 25px; font-size: 1rem; cursor: pointer; border-radius: 4px;
-        text-transform: uppercase; letter-spacing: 2px; font-weight: bold; transition: all 0.3s;
-    }
-    #sendBtn:hover { background: var(--jarvis-blue); color: var(--bg-color); box-shadow: 0 0 20px var(--jarvis-blue); }
-    #sendBtn:disabled { border-color: #333; color: #333; cursor: not-allowed; background: transparent; box-shadow: none; }
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: 0.3; }
+    94% { opacity: 1; }
+    96% { opacity: 0.5; }
+    97% { opacity: 1; }
+  }
 
-    .typing span { display: inline-block; width: 6px; height: 6px; background: var(--jarvis-blue); border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; box-shadow: 0 0 5px var(--jarvis-blue); }
-    .typing span:nth-child(1) { animation-delay: -0.32s; }
-    .typing span:nth-child(2) { animation-delay: -0.16s; }
-    @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+  /* ===== HUD Side Panels ===== */
+  .side-panel {
+    position: absolute;
+    width: 200px;
+    z-index: 20;
+  }
 
-    @media (max-width: 600px) {
-        .input-area { flex-wrap: wrap; }
-        #userInput { width: 100%; flex: auto; }
-        #micBtn, #sendBtn { flex: 1; }
-        .message { max-width: 95%; }
-        #modelSelect { max-width: 100%; }
-    }
+  .side-panel.left { left: 30px; top: 50%; transform: translateY(-50%); }
+  .side-panel.right { right: 30px; top: 50%; transform: translateY(-50%); }
+
+  .panel-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: rgba(0,212,255,0.6);
+    border-bottom: 1px solid rgba(0,212,255,0.1);
+  }
+
+  .panel-line .label { color: rgba(0,212,255,0.4); }
+  .panel-line .value { color: #00d4ff; text-shadow: 0 0 5px rgba(0,212,255,0.5); }
+  .panel-line .value.warning { color: #ff6a00; text-shadow: 0 0 5px rgba(255,106,0,0.5); }
+
+  /* ===== Rotating Rings ===== */
+  .ring-container {
+    position: relative;
+    width: 500px;
+    height: 500px;
+  }
+
+  .ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid transparent;
+  }
+
+  .ring-1 {
+    width: 100%;
+    height: 100%;
+    border-color: rgba(0,212,255,0.2);
+    border-top-color: rgba(0,212,255,0.8);
+    border-right-color: rgba(0,212,255,0.4);
+    animation: rotateCW 8s linear infinite;
+    box-shadow: 0 0 20px rgba(0,212,255,0.1), inset 0 0 20px rgba(0,212,255,0.05);
+  }
+
+  .ring-2 {
+    width: 85%;
+    height: 85%;
+    top: 7.5%;
+    left: 7.5%;
+    border-color: rgba(0,212,255,0.15);
+    border-bottom-color: rgba(0,212,255,0.6);
+    border-left-color: rgba(0,212,255,0.3);
+    animation: rotateCCW 12s linear infinite;
+  }
+
+  .ring-3 {
+    width: 70%;
+    height: 70%;
+    top: 15%;
+    left: 15%;
+    border-color: rgba(255,106,0,0.2);
+    border-top-color: rgba(255,106,0,0.7);
+    animation: rotateCW 15s linear infinite;
+    box-shadow: 0 0 15px rgba(255,106,0,0.1);
+  }
+
+  .ring-4 {
+    width: 55%;
+    height: 55%;
+    top: 22.5%;
+    left: 22.5%;
+    border: 2px dashed rgba(0,212,255,0.2);
+    animation: rotateCW 20s linear infinite;
+  }
+
+  @keyframes rotateCW { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes rotateCCW { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+
+  /* ===== Arc Reactor Core ===== */
+  .arc-reactor {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, #a0e8ff 20%, #00d4ff 40%, #0066aa 60%, #001a33 80%, transparent 100%);
+    box-shadow:
+      0 0 30px rgba(0,212,255,0.8),
+      0 0 60px rgba(0,212,255,0.5),
+      0 0 100px rgba(0,212,255,0.3),
+      inset 0 0 30px rgba(255,255,255,0.5);
+    animation: pulse 2s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .arc-reactor::before {
+    content: '';
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    animation: rotateCW 3s linear infinite;
+  }
+
+  .arc-reactor::after {
+    content: '';
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff, rgba(255,255,255,0.3));
+    box-shadow: 0 0 20px #fff;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 30px rgba(0,212,255,0.8), 0 0 60px rgba(0,212,255,0.5), 0 0 100px rgba(0,212,255,0.3); }
+    50% { box-shadow: 0 0 40px rgba(0,212,255,1), 0 0 80px rgba(0,212,255,0.7), 0 0 120px rgba(0,212,255,0.4); }
+  }
+
+  /* ===== Status Display ===== */
+  .status-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 30;
+    pointer-events: none;
+  }
+
+  .status-display .system-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: #fff;
+    text-shadow: 0 0 10px #00d4ff;
+    margin-bottom: 4px;
+  }
+
+  .status-display .percent {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 36px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 20px #00d4ff, 0 0 40px rgba(0,212,255,0.5);
+    line-height: 1;
+  }
+
+  .status-display .percent-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: rgba(0,212,255,0.7);
+    margin-top: 4px;
+  }
+
+  /* ===== Data Streams ===== */
+  .data-stream {
+    position: absolute;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: rgba(0,212,255,0.4);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .data-stream.top {
+    top: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: dataScroll 10s linear infinite;
+  }
+
+  .data-stream.bottom {
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: dataScroll 10s linear infinite reverse;
+  }
+
+  @keyframes dataScroll {
+    0% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+    100% { opacity: 0.3; }
+  }
+
+  /* ===== Waveform ===== */
+  .waveform {
+    position: absolute;
+    bottom: 180px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 40px;
+  }
+
+  .wave-bar {
+    width: 3px;
+    background: linear-gradient(to top, #00d4ff, rgba(0,212,255,0.2));
+    border-radius: 2px;
+    animation: waveAnim 1s ease-in-out infinite;
+  }
+
+  @keyframes waveAnim {
+    0%, 100% { height: 5px; }
+    50% { height: 30px; }
+  }
+
+  /* ===== Control Panel (Bottom) ===== */
+  .control-panel {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    z-index: 50;
+    width: 500px;
+  }
+
+  /* ===== API Key Section ===== */
+  .api-section {
+    width: 100%;
+    background: rgba(0,20,40,0.6);
+    border: 1px solid rgba(0,212,255,0.3);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+    backdrop-filter: blur(5px);
+  }
+
+  .api-section .lock-icon {
+    font-size: 16px;
+    color: #ff6a00;
+    text-shadow: 0 0 10px rgba(255,106,0,0.5);
+    animation: lockPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes lockPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .api-section input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(0,212,255,0.3);
+    color: #00d4ff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    padding: 6px 10px;
+    outline: none;
+    letter-spacing: 2px;
+  }
+
+  .api-section input::placeholder {
+    color: rgba(0,212,255,0.3);
+  }
+
+  .api-section input:focus {
+    border-bottom-color: #00d4ff;
+    box-shadow: 0 2px 10px rgba(0,212,255,0.2);
+  }
+
+  .btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 6px 16px;
+    border: 1px solid rgba(0,212,255,0.5);
+    background: rgba(0,212,255,0.1);
+    color: #00d4ff;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  }
+
+  .btn:hover {
+    background: rgba(0,212,255,0.3);
+    box-shadow: 0 0 20px rgba(0,212,255,0.3);
+    text-shadow: 0 0 10px #00d4ff;
+  }
+
+  .btn.danger {
+    border-color: rgba(255,106,0,0.5);
+    background: rgba(255,106,0,0.1);
+    color: #ff6a00;
+  }
+
+  .btn.danger:hover {
+    background: rgba(255,106,0,0.3);
+    box-shadow: 0 0 20px rgba(255,106,0,0.3);
+  }
+
+  /* ===== Execute Button ===== */
+  .execute-btn {
+    position: relative;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    padding: 14px 60px;
+    border: 2px solid #00d4ff;
+    background: rgba(0,212,255,0.1);
+    color: #00d4ff;
+    cursor: pointer;
+    text-transform: uppercase;
+    clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+    transition: all 0.3s;
+    overflow: hidden;
+  }
+
+  .execute-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,212,255,0.3), transparent);
+    transition: left 0.5s;
+  }
+
+  .execute-btn:hover::before {
+    left: 100%;
+  }
+
+  .execute-btn:hover {
+    background: rgba(0,212,255,0.2);
+    box-shadow: 0 0 30px rgba(0,212,255,0.5), inset 0 0 30px rgba(0,212,255,0.1);
+    text-shadow: 0 0 10px #00d4ff;
+    transform: scale(1.02);
+  }
+
+  .execute-btn:active {
+    transform: scale(0.98);
+  }
+
+  .execute-btn.active {
+    border-color: #ff6a00;
+    color: #ff6a00;
+    background: rgba(255,106,0,0.1);
+    animation: executePulse 1s ease-in-out infinite;
+  }
+
+  @keyframes executePulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(255,106,0,0.3); }
+    50% { box-shadow: 0 0 40px rgba(255,106,0,0.6), 0 0 60px rgba(255,106,0,0.3); }
+  }
+
+  /* ===== Voice Selector ===== */
+  .voice-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .voice-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    border: 1px solid rgba(0,212,255,0.3);
+    background: rgba(0,20,40,0.5);
+    color: #00d4ff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  }
+
+  .voice-btn:hover {
+    border-color: #00d4ff;
+    background: rgba(0,212,255,0.15);
+  }
+
+  .voice-btn.active {
+    border-color: #00d4ff;
+    background: rgba(0,212,255,0.2);
+    box-shadow: 0 0 15px rgba(0,212,255,0.3);
+  }
+
+  .mic-icon {
+    font-size: 18px;
+    animation: micPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes micPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  /* ===== Floating Data Labels ===== */
+  .float-label {
+    position: absolute;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: rgba(0,212,255,0.5);
+    letter-spacing: 2px;
+  }
+
+  .float-label::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 1px;
+    background: rgba(0,212,255,0.5);
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  .fl-1 { top: 200px; left: 80px; }
+  .fl-2 { top: 200px; right: 80px; }
+  .fl-3 { bottom: 250px; left: 80px; }
+  .fl-4 { bottom: 250px; right: 80px; }
+
+  /* ===== Target Lock Indicator ===== */
+  .target-lock {
+    position: absolute;
+    top: 160px;
+    right: 100px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: #ff6a00;
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px rgba(255,106,0,0.5);
+    animation: flicker 4s infinite;
+  }
+
+  .target-lock::before {
+    content: '◉ ';
+  }
+
+  /* ===== Hexagon Decorations ===== */
+  .hex-deco {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(0,212,255,0.2);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+
+  .hex-deco:nth-child(1) { top: 100px; left: 150px; animation: rotateCW 10s linear infinite; }
+  .hex-deco:nth-child(2) { top: 150px; right: 130px; animation: rotateCCW 8s linear infinite; }
+  .hex-deco:nth-child(3) { bottom: 130px; left: 120px; animation: rotateCW 12s linear infinite; }
+  .hex-deco:nth-child(4) { bottom: 100px; right: 160px; animation: rotateCCW 9s linear infinite; }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 950px) {
+    .container { transform: scale(0.7); }
+  }
+
+  @media (max-width: 650px) {
+    .container { transform: scale(0.45); }
+  }
 </style>
 </head>
 <body>
 
-<div class="grid-background"></div>
-<div class="hud-circle"></div>
+  <!-- Background Effects -->
+  <div class="bg-grid"></div>
+  <div class="scanlines"></div>
+  <div class="scan-bar"></div>
+  <div class="vignette"></div>
 
-<div class="jarvis-container">
-    <header>
-        <div class="logo">J.A.R.V.I.S</div>
-        <div class="status"><div class="status-dot"></div> SYSTEM ONLINE</div>
-    </header>
+  <!-- Main Container -->
+  <div class="container">
 
-    <div class="api-bar">
-        <label>🔑 API KEY:</label>
-        <input type="password" id="apiKeyInput" placeholder="วาง Groq API Key (gsk_...) ที่นี่" autocomplete="off">
-        <button class="mini-btn" onclick="saveApiKey()">SAVE</button>
-        <button class="mini-btn danger" onclick="clearApiKey()">DELETE</button>
-        <span id="keyStatus" class="no">● ยังไม่ได้ตั้งค่า KEY</span>
-        <select id="modelSelect" title="เลือกโมเดล AI">
-            <option value="">⏳ กำลังรอ API Key...</option>
-        </select>
-        <button class="mini-btn" id="ttsBtn" onclick="toggleTTS()">🔊 VOICE</button>
+    <!-- HUD Corners -->
+    <div class="hud-corner tl"></div>
+    <div class="hud-corner tr"></div>
+    <div class="hud-corner bl"></div>
+    <div class="hud-corner br"></div>
+
+    <!-- Hexagon Decorations -->
+    <div class="hex-deco"></div>
+    <div class="hex-deco"></div>
+    <div class="hex-deco"></div>
+    <div class="hex-deco"></div>
+
+    <!-- Top HUD -->
+    <div class="hud-top">
+      <h1>J.A.R.V.I.S — VOICE & API ASSISTANT</h1>
     </div>
 
-    <div class="chat-area" id="chatArea"></div>
+    <!-- Target Lock -->
+    <div class="target-lock">TARGET LOCK: ACQUIRED</div>
 
-    <div class="input-area">
-        <button class="icon-btn" id="micBtn" onclick="toggleSpeechRecognition()" title="สั่งงานด้วยเสียงภาษาไทย">🎙️</button>
-        <input type="text" id="userInput" placeholder="พิมพ์คำสั่ง หรือกดไมค์เพื่อพูด..." autocomplete="off">
-        <button id="sendBtn" onclick="processCommand()">Execute</button>
+    <!-- Outer Ring -->
+    <div class="outer-ring"></div>
+
+    <!-- Floating Labels -->
+    <div class="float-label fl-1">SYS.CORE: ONLINE</div>
+    <div class="float-label fl-2">NEURAL NET: ACTIVE</div>
+    <div class="float-label fl-3">VOICE MODULE: TH</div>
+    <div class="float-label fl-4">API STATUS: PENDING</div>
+
+    <!-- Data Streams -->
+    <div class="data-stream top">STABILIZED CORE OUTPUT: 98.7% // JARVIS ONLINE // TARGET LOCK: ACQUIRED // SYSTEM INTEGRITY: NOMINAL //</div>
+    <div class="data-stream bottom">0x4F2A // 0x8B1C // 0x3D7E // 0xA5F0 // 0x6C29 // 0xE1D4 // 0x9B87 // 0x2F63 //</div>
+
+    <!-- Side Panels -->
+    <div class="side-panel left">
+      <div class="panel-line"><span class="label">CPU</span><span class="value" id="cpuVal">12%</span></div>
+      <div class="panel-line"><span class="label">MEM</span><span class="value" id="memVal">2.4GB</span></div>
+      <div class="panel-line"><span class="label">NET</span><span class="value" id="netVal">↑128 ↓256</span></div>
+      <div class="panel-line"><span class="label">UPTIME</span><span class="value" id="uptimeVal">00:00:00</span></div>
+      <div class="panel-line"><span class="label">TEMP</span><span class="value">36°C</span></div>
+      <div class="panel-line"><span class="label">POWER</span><span class="value warning" id="powerVal">⚠ LOW</span></div>
     </div>
-</div>
+
+    <div class="side-panel right">
+      <div class="panel-line"><span class="label">LANG</span><span class="value">TH-TH</span></div>
+      <div class="panel-line"><span class="label">MODEL</span><span class="value">GPT-4</span></div>
+      <div class="panel-line"><span class="label">TOKENS</span><span class="value" id="tokenVal">0</span></div>
+      <div class="panel-line"><span class="label">REQ</span><span class="value" id="reqVal">0</span></div>
+      <div class="panel-line"><span class="label">LATENCY</span><span class="value" id="latVal">— ms</span></div>
+      <div class="panel-line"><span class="label">STATUS</span><span class="value warning" id="statusVal">WAITING</span></div>
+    </div>
+
+    <!-- Ring Container -->
+    <div class="ring-container">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="ring ring-3"></div>
+      <div class="ring ring-4"></div>
+
+      <!-- Arc Reactor -->
+      <div class="arc-reactor"></div>
+
+      <!-- Status Display -->
+      <div class="status-display">
+        <div class="system-text">J.A.R.V.I.S SYSTEM ONLINE</div>
+        <div class="percent" id="corePercent">98.7%</div>
+        <div class="percent-label">STABILIZED CORE OUTPUT</div>
+      </div>
+
+      <!-- Waveform -->
+      <div class="waveform" id="waveform"></div>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+
+      <!-- API Key Section -->
+      <div class="api-section">
+        <span class="lock-icon"></span>
+        <input type="password" id="apiKeyInput" placeholder="ยังไม่ได้ตั้งค่า KEY — ใส่ API Key ที่นี่...">
+        <button class="btn" onclick="saveKey()">SAVE</button>
+        <button class="btn danger" onclick="deleteKey()">DELETE</button>
+      </div>
+
+      <!-- Voice Selection -->
+      <div class="voice-section">
+        <button class="voice-btn active" id="voiceTh" onclick="selectVoice('th')">
+          <span>🔊</span> VOICE TH
+        </button>
+        <button class="voice-btn" id="voiceEn" onclick="selectVoice('en')">
+          <span>🔊</span> VOICE EN
+        </button>
+        <button class="voice-btn" id="micBtn" onclick="toggleMic()">
+          <span class="mic-icon">🎙️</span> <span id="micText">LISTEN</span>
+        </button>
+      </div>
+
+      <!-- Execute Button -->
+      <button class="execute-btn" id="executeBtn" onclick="execute()">
+        EXECUTE
+      </button>
+
+    </div>
+
+  </div>
 
 <script>
-    const chatArea    = document.getElementById('chatArea');
-    const userInput   = document.getElementById('userInput');
-    const sendBtn     = document.getElementById('sendBtn');
-    const micBtn      = document.getElementById('micBtn');
-    const apiKeyInput = document.getElementById('apiKeyInput');
-    const keyStatus   = document.getElementById('keyStatus');
-    const modelSelect = document.getElementById('modelSelect');
-    const ttsBtn      = document.getElementById('ttsBtn');
+  // ===== Waveform Generation =====
+  const waveform = document.getElementById('waveform');
+  for (let i = 0; i < 40; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'wave-bar';
+    bar.style.animationDelay = `${i * 0.05}s`;
+    bar.style.animationDuration = `${0.5 + Math.random() * 1}s`;
+    waveform.appendChild(bar);
+  }
 
-    // 🧠 SYSTEM PROMPT กำหนดคุณลักษณะ J.A.R.V.I.S สำหรับคุณชินอิจิ
-    const SYSTEM_PROMPT = "คุณคือ J.A.R.V.I.S. ผู้ช่วย AI ส่วนตัวระดับสูงของคุณชินอิจิ คุณคือที่ปรึกษาเชิงกลยุทธ์ (Strategic Advisor) สุขุม ชาญฉลาด มีตรรกะ สุภาพ ตอบตรงประเด็น และเรียกผู้ใช้ว่า 'คุณชินอิจิ' เสมอ";
+  // ===== Live Data Updates =====
+  let uptime = 0;
+  setInterval(() => {
+    uptime++;
+    const h = String(Math.floor(uptime / 3600)).padStart(2, '0');
+    const m = String(Math.floor((uptime % 3600) / 60)).padStart(2, '0');
+    const s = String(uptime % 60).padStart(2, '0');
+    document.getElementById('uptimeVal').textContent = `${h}:${m}:${s}`;
 
-    const FALLBACK_MODELS = [
-        'llama-3.3-70b-versatile',
-        'llama3-8b-8192',
-        'mixtral-8x7b-32768'
-    ];
+    document.getElementById('cpuVal').textContent = `${Math.floor(10 + Math.random() * 20)}%`;
+    document.getElementById('memVal').textContent = `${(2 + Math.random()).toFixed(1)}GB`;
+    document.getElementById('tokenVal').textContent = Math.floor(Math.random() * 5000);
+  }, 1000);
 
-    let conversationHistory = [];
-    let ttsEnabled = true;
-    let recognition = null;
-    let isListening = false;
+  // ===== Core Percent Animation =====
+  let percent = 98.7;
+  setInterval(() => {
+    percent = 98 + Math.random() * 1.9;
+    document.getElementById('corePercent').textContent = percent.toFixed(1) + '%';
+  }, 2000);
 
-    /* ================= 🎙️ ระบบรับเสียงพูด (Speech-to-Text) ================= */
-    function initSpeechRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            console.warn("เบราว์เซอร์นี้ไม่รองรับ Web Speech Recognition");
-            micBtn.style.display = 'none';
-            return;
-        }
-
-        recognition = new SpeechRecognition();
-        recognition.lang = 'th-TH'; // กำหนดเป็นภาษาไทย
-        recognition.continuous = false;
-        recognition.interimResults = true;
-
-        recognition.onstart = () => {
-            isListening = true;
-            micBtn.classList.add('listening');
-            userInput.placeholder = "กำลังฟังเสียงของคุณชินอิจิ...";
-            if (synth) synth.cancel(); // หยุดเสียงพูดตอบกลับทันทีเมื่อคุณชินอิจิเริ่มพูด
-        };
-
-        recognition.onresult = (event) => {
-            let transcript = '';
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                transcript += event.results[i][0].transcript;
-            }
-            userInput.value = transcript;
-        };
-
-        recognition.onerror = (event) => {
-            console.error("Speech Recognition Error:", event.error);
-            stopListening();
-        };
-
-        recognition.onend = () => {
-            stopListening();
-            // ส่งคำสั่งทันทีหากมีข้อความที่รับมาได้
-            if (userInput.value.trim().length > 0) {
-                processCommand();
-            }
-        };
+  // ===== API Key Functions =====
+  function saveKey() {
+    const key = document.getElementById('apiKeyInput').value;
+    if (key.trim()) {
+      localStorage.setItem('jarvis_api_key', key);
+      document.getElementById('statusVal').textContent = 'CONNECTED';
+      document.getElementById('statusVal').style.color = '#00ff88';
+      document.getElementById('powerVal').textContent = '● ONLINE';
+      document.getElementById('powerVal').style.color = '#00ff88';
+      document.querySelector('.lock-icon').textContent = '🔓';
+      document.querySelector('.lock-icon').style.color = '#00ff88';
+      flashEffect();
     }
+  }
 
-    function toggleSpeechRecognition() {
-        if (!recognition) {
-            alert("เบราว์เซอร์ของคุณไม่รองรับระบบจดจำเสียงพูด กรุณาใช้ Chrome หรือ Edge ครับ");
-            return;
-        }
-        if (isListening) {
-            recognition.stop();
-        } else {
-            userInput.value = '';
-            recognition.start();
-        }
+  function deleteKey() {
+    localStorage.removeItem('jarvis_api_key');
+    document.getElementById('apiKeyInput').value = '';
+    document.getElementById('statusVal').textContent = 'WAITING';
+    document.getElementById('statusVal').style.color = '#ff6a00';
+    document.getElementById('powerVal').textContent = '⚠ LOW';
+    document.getElementById('powerVal').style.color = '#ff6a00';
+    document.querySelector('.lock-icon').textContent = '';
+    document.querySelector('.lock-icon').style.color = '#ff6a00';
+  }
+
+  // Load saved key
+  const savedKey = localStorage.getItem('jarvis_api_key');
+  if (savedKey) {
+    document.getElementById('apiKeyInput').value = savedKey;
+    document.getElementById('statusVal').textContent = 'CONNECTED';
+    document.getElementById('statusVal').style.color = '#00ff88';
+    document.getElementById('powerVal').textContent = '● ONLINE';
+    document.getElementById('powerVal').style.color = '#00ff88';
+    document.querySelector('.lock-icon').textContent = '🔓';
+    document.querySelector('.lock-icon').style.color = '#00ff88';
+  }
+
+  // ===== Voice Selection =====
+  function selectVoice(lang) {
+    document.getElementById('voiceTh').classList.toggle('active', lang === 'th');
+    document.getElementById('voiceEn').classList.toggle('active', lang === 'en');
+    document.querySelector('.fl-3').textContent = `VOICE MODULE: ${lang.toUpperCase()}`;
+  }
+
+  // ===== Mic Toggle =====
+  let micActive = false;
+  function toggleMic() {
+    micActive = !micActive;
+    document.getElementById('micText').textContent = micActive ? 'LISTENING...' : 'LISTEN';
+    document.getElementById('micBtn').classList.toggle('active', micActive);
+
+    if (micActive) {
+      document.getElementById('executeBtn').classList.add('active');
+      document.getElementById('executeBtn').textContent = '● PROCESSING';
+    } else {
+      document.getElementById('executeBtn').classList.remove('active');
+      document.getElementById('executeBtn').textContent = 'EXECUTE';
     }
+  }
 
-    function stopListening() {
-        isListening = false;
-        micBtn.classList.remove('listening');
-        userInput.placeholder = "พิมพ์คำสั่ง หรือกดไมค์เพื่อพูด...";
-    }
+  // ===== Execute =====
+  function execute() {
+    const btn = document.getElementById('executeBtn');
+    btn.classList.add('active');
+    btn.textContent = '● PROCESSING';
 
-    /* ================= 🔊 ระบบเสียงพูด (Text-to-Speech) ================= */
-    const synth = window.speechSynthesis;
+    let count = 0;
+    const interval = setInterval(() => {
+      count++;
+      document.getElementById('reqVal').textContent = count;
+      document.getElementById('latVal').textContent = `${Math.floor(100 + Math.random() * 400)} ms`;
 
-    function cleanTextForTTS(text) {
-        return text
-            .replace(/<[^>]*>/g, '')              // ลบ HTML Tags
-            .replace(/\*\*(.*?)\*\*/g, '$1')       // ลบ Bold Markdown
-            .replace(/`([^`]+)`/g, '$1')           // ลบ Code Blocks
-            .replace(/[#*_\-\=]/g, ' ')            // ลบสัญลักษณ์พิเศษ
-            .trim();
-    }
+      if (count >= 5) {
+        clearInterval(interval);
+        btn.classList.remove('active');
+        btn.textContent = 'EXECUTE';
+      }
+    }, 800);
+  }
 
-    function speak(text) {
-        if (!ttsEnabled || !synth) return;
-        synth.cancel();
-        
-        const cleanText = cleanTextForTTS(text);
-        if (!cleanText) return;
+  // ===== Flash Effect =====
+  function flashEffect() {
+    const flash = document.createElement('div');
+    flash.style.cssText = `
+      position: fixed; inset: 0;
+      background: rgba(0,212,255,0.1);
+      z-index: 9999;
+      pointer-events: none;
+      animation: flashAnim 0.5s ease-out forwards;
+    `;
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 500);
+  }
 
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = 'th-TH';
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
+  const style = document.createElement('style');
+  style.textContent = `@keyframes flashAnim { from { opacity: 1; } to { opacity: 0; } }`;
+  document.head.appendChild(style);
 
-        // เลือก Voice ภาษาไทย (ถ้ามีในระบบ)
-        const voices = synth.getVoices();
-        const thaiVoice = voices.find(v => v.lang.includes('th'));
-        if (thaiVoice) utterance.voice = thaiVoice;
-
-        synth.speak(utterance);
-    }
-
-    function toggleTTS() {
-        ttsEnabled = !ttsEnabled;
-        ttsBtn.textContent = ttsEnabled ? '🔊 VOICE' : '🔇 MUTED';
-        if (!ttsEnabled && synth) synth.cancel();
-    }
-
-    /* ================= ⚙️ ตัวช่วยจัดรูปแบบข้อความ ================= */
-    function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-    function stripHtml(html) { const d = document.createElement('div'); d.innerHTML = html; return d.textContent || ''; }
-    function formatAI(t) {
-        let s = escapeHtml(t);
-        s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
-        s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
-        s = s.replace(/\n/g, '<br>');
-        return s;
-    }
-
-    function addMessage(text, sender, isJson = false, isError = false) {
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message', sender);
-        if (isError) msgDiv.classList.add('error');
-
-        const header = document.createElement('div');
-        header.classList.add('msg-header');
-        header.innerText = sender === 'user' ? 'YOU (ชินอิจิ)' : 'J.A.R.V.I.S';
-
-        const content = document.createElement('div');
-        content.classList.add('msg-content');
-
-        if (isJson) {
-            const pre = document.createElement('pre');
-            pre.textContent = text;
-            content.appendChild(pre);
-        } else {
-            content.innerHTML = text;
-        }
-
-        msgDiv.appendChild(header);
-        msgDiv.appendChild(content);
-        chatArea.appendChild(msgDiv);
-        chatArea.scrollTop = chatArea.scrollHeight;
-
-        if (sender === 'jarvis' && !isJson && !isError) {
-            speak(stripHtml(text));
-        }
-    }
-
-    function showTyping() {
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message', 'jarvis');
-        msgDiv.id = 'typingIndicator';
-        msgDiv.innerHTML = `
-            <div class="msg-header">J.A.R.V.I.S</div>
-            <div class="msg-content typing"><span></span><span></span><span></span></div>`;
-        chatArea.appendChild(msgDiv);
-        chatArea.scrollTop = chatArea.scrollHeight;
-    }
-    
-    function hideTyping() {
-        const el = document.getElementById('typingIndicator');
-        if (el) el.remove();
-    }
-
-    /* ================= 🔐 จัดการ API Key & Models ================= */
-    async function saveApiKey() {
-        const k = apiKeyInput.value.trim();
-        if (!k) { addMessage("กรุณาวาง API Key ก่อนบันทึกครับคุณชินอิจิ", 'jarvis', false, true); return; }
-        localStorage.setItem('jarvis_groq_key', k);
-        apiKeyInput.value = '';
-        updateKeyStatus();
-        addMessage("บันทึก API Key เรียบร้อยครับ กำลังซิงค์รายชื่อโมเดลล่าสุด...", 'jarvis');
-        await loadAvailableModels(true);
-    }
-
-    function clearApiKey() {
-        localStorage.removeItem('jarvis_groq_key');
-        localStorage.removeItem('jarvis_last_model');
-        updateKeyStatus();
-        modelSelect.innerHTML = '<option value="">⏳ กำลังรอ API Key...</option>';
-        addMessage("ลบ API Key ออกจากระบบเรียบร้อยแล้วครับคุณชินอิจิ", 'jarvis');
-    }
-
-    function updateKeyStatus() {
-        if (localStorage.getItem('jarvis_groq_key')) {
-            keyStatus.textContent = '● KEY พร้อมใช้งาน';
-            keyStatus.className = 'ok';
-        } else {
-            keyStatus.textContent = '● ยังไม่ได้ตั้งค่า KEY';
-            keyStatus.className = 'no';
-        }
-    }
-
-    function populateModelSelect(models) {
-        const saved = localStorage.getItem('jarvis_last_model') || '';
-        modelSelect.innerHTML = models
-            .map(id => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`)
-            .join('');
-        modelSelect.value = (saved && models.includes(saved)) ? saved : models[0];
-    }
-
-    async function loadAvailableModels(showChatMsg) {
-        const apiKey = localStorage.getItem('jarvis_groq_key');
-        if (!apiKey) { populateModelSelect(FALLBACK_MODELS); return; }
-
-        try {
-            const res = await fetch('https://api.groq.com/openai/v1/models', {
-                headers: { 'Authorization': `Bearer ${apiKey}` }
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-
-            const chatModels = (data.data || [])
-                .map(m => m.id)
-                .filter(id => id && !/whisper|tts|guard|moderation/i.test(id))
-                .sort();
-
-            if (chatModels.length === 0) throw new Error('ไม่พบโมเดลในบัญชีนี้');
-
-            populateModelSelect(chatModels);
-            if (showChatMsg) addMessage(`ซิงค์รายชื่อโมเดลสำเร็จ พบ ${chatModels.length} โมเดลพร้อมใช้งานครับคุณชินอิจิ`, 'jarvis');
-        } catch (err) {
-            populateModelSelect(FALLBACK_MODELS);
-            if (showChatMsg) addMessage(`โหลดรายการโมเดลจากเซิร์ฟเวอร์ไม่สำเร็จ — ใช้รายชื่อสำรองแทนครับ`, 'jarvis', false, true);
-        }
-    }
-
-    modelSelect.addEventListener('change', () => {
-        localStorage.setItem('jarvis_last_model', modelSelect.value);
+  // ===== Random Hex Data Stream =====
+  setInterval(() => {
+    const streams = document.querySelectorAll('.data-stream');
+    streams.forEach(s => {
+      let hex = '';
+      for (let i = 0; i < 8; i++) {
+        hex += '0x' + Math.floor(Math.random() * 65536).toString(16).toUpperCase().padStart(4, '0') + ' // ';
+      }
+      if (s.classList.contains('bottom')) s.textContent = hex;
     });
-
-    /* ================= ⚙️ เรียก Groq Chat API ================= */
-    function trimHistory() {
-        if (conversationHistory.length > 12) conversationHistory = conversationHistory.slice(-12);
-    }
-
-    async function callGroqAPI(userText) {
-        const apiKey = localStorage.getItem('jarvis_groq_key');
-        if (!apiKey) throw new Error("ยังไม่ได้ตั้งค่า API Key กรุณากรอกที่แถบด้านบนแล้วกด SAVE ครับ");
-        const model = modelSelect.value;
-        if (!model) throw new Error("ยังไม่ได้เลือกโมเดล กรุณารอระบบโหลดรายชื่อโมเดลก่อนครับ");
-
-        conversationHistory.push({ role: 'user', content: userText });
-        trimHistory();
-
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: model,
-                messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...conversationHistory],
-                temperature: 0.6,
-                max_tokens: 1024
-            })
-        });
-
-        if (!res.ok) {
-            let msg = `HTTP ${res.status}`;
-            try { const e = await res.json(); msg = e.error?.message || msg; } catch (_) {}
-            conversationHistory.pop();
-            throw new Error(msg);
-        }
-
-        const data = await res.json();
-        const reply = data.choices?.[0]?.message?.content || "(ไม่ได้รับคำตอบจากโมเดล)";
-        conversationHistory.push({ role: 'assistant', content: reply });
-        trimHistory();
-        return reply;
-    }
-
-    /* ================= 🧠 ประมวลผลคำสั่ง ================= */
-    async function processCommand() {
-        const input = userInput.value.trim();
-        if (!input) return;
-
-        addMessage(escapeHtml(input), 'user');
-        userInput.value = '';
-        sendBtn.disabled = true;
-        showTyping();
-
-        const low = input.toLowerCase();
-
-        try {
-            if (low === 'clear' || input === 'ล้าง') {
-                hideTyping();
-                chatArea.innerHTML = '';
-                conversationHistory = [];
-                addMessage("ล้างหน้าจอและหน่วยความจำการสนทนาเรียบร้อยแล้วครับคุณชินอิจิ", 'jarvis');
-            }
-            else if (low === 'time' || input === 'เวลา') {
-                hideTyping();
-                addMessage(`เวลาปัจจุบันของระบบ: ${new Date().toLocaleString('th-TH', { dateStyle: 'full', timeStyle: 'medium' })}`, 'jarvis');
-            }
-            else {
-                if (!localStorage.getItem('jarvis_groq_key')) {
-                    hideTyping();
-                    addMessage("ระบบยังไม่ได้รับกุญแจเข้าถึง (API Key) กรุณากรอกที่แถบด้านบนแล้วกด SAVE ก่อนครับคุณชินอิจิ", 'jarvis', false, true);
-                } else {
-                    const reply = await callGroqAPI(input);
-                    hideTyping();
-                    addMessage(formatAI(reply), 'jarvis');
-                }
-            }
-        } catch (err) {
-            hideTyping();
-            addMessage(`ข้อผิดพลาดของระบบ: ${escapeHtml(err.message)}`, 'jarvis', false, true);
-        } finally {
-            sendBtn.disabled = false;
-        }
-    }
-
-    /* ================= 🚀 เริ่มต้นระบบ ================= */
-    userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') processCommand(); });
-
-    window.onload = async () => {
-        updateKeyStatus();
-        initSpeechRecognition();
-        
-        // เคลียร์ Voice Engine Cache
-        if (synth) {
-            synth.getVoices();
-            if (speechSynthesis.onvoiceschanged !== undefined) {
-                speechSynthesis.onvoiceschanged = () => synth.getVoices();
-            }
-        }
-
-        const hasKey = !!localStorage.getItem('jarvis_groq_key');
-        addMessage(hasKey
-            ? "ระบบ J.A.R.V.I.S ออนไลน์พร้อมใช้งานครับคุณชินอิจิ สามารถพิมพ์คำสั่งหรือกดปุ่มไมค์เพื่อสั่งการด้วยเสียงได้ทันทีครับ"
-            : "ระบบ J.A.R.V.I.S ออนไลน์แล้วครับคุณชินอิจิ กรุณาตั้งค่า **Groq API Key** ที่แถบด้านบนเพื่อเริ่มการทำงานครับ",
-            'jarvis');
-            
-        if (hasKey) await loadAvailableModels(false);
-    };
+  }, 3000);
 </script>
 
 </body>
