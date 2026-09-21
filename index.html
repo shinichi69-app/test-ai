@@ -21,7 +21,6 @@
     position: relative;
   }
 
-  /* ===== Background Grid ===== */
   .bg-grid {
     position: fixed;
     inset: 0;
@@ -38,7 +37,6 @@
     100% { transform: translate(40px,40px); }
   }
 
-  /* ===== Scan Lines ===== */
   .scanlines {
     position: fixed;
     inset: 0;
@@ -69,7 +67,6 @@
     100% { top: 100%; }
   }
 
-  /* ===== Vignette ===== */
   .vignette {
     position: fixed;
     inset: 0;
@@ -78,7 +75,6 @@
     z-index: 998;
   }
 
-  /* ===== Main Container ===== */
   .container {
     position: relative;
     z-index: 10;
@@ -89,7 +85,6 @@
     justify-content: center;
   }
 
-  /* ===== Outer Ring ===== */
   .outer-ring {
     position: absolute;
     width: 850px;
@@ -116,7 +111,6 @@
     to { transform: rotate(360deg); }
   }
 
-  /* ===== HUD Corner Brackets ===== */
   .hud-corner {
     position: absolute;
     width: 60px;
@@ -129,7 +123,6 @@
   .hud-corner.bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
   .hud-corner.br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
 
-  /* ===== HUD Top Bar ===== */
   .hud-top {
     position: absolute;
     top: 30px;
@@ -157,7 +150,6 @@
     97% { opacity: 1; }
   }
 
-  /* ===== HUD Side Panels ===== */
   .side-panel {
     position: absolute;
     width: 200px;
@@ -181,8 +173,8 @@
   .panel-line .label { color: rgba(0,212,255,0.4); }
   .panel-line .value { color: #00d4ff; text-shadow: 0 0 5px rgba(0,212,255,0.5); }
   .panel-line .value.warning { color: #ff6a00; text-shadow: 0 0 5px rgba(255,106,0,0.5); }
+  .panel-line .value.success { color: #00ff88; text-shadow: 0 0 5px rgba(0,255,136,0.5); }
 
-  /* ===== Rotating Rings ===== */
   .ring-container {
     position: relative;
     width: 500px;
@@ -239,7 +231,6 @@
   @keyframes rotateCW { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   @keyframes rotateCCW { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
 
-  /* ===== Arc Reactor Core ===== */
   .arc-reactor {
     position: absolute;
     top: 50%;
@@ -286,7 +277,6 @@
     50% { box-shadow: 0 0 40px rgba(0,212,255,1), 0 0 80px rgba(0,212,255,0.7), 0 0 120px rgba(0,212,255,0.4); }
   }
 
-  /* ===== Status Display ===== */
   .status-display {
     position: absolute;
     top: 50%;
@@ -323,7 +313,6 @@
     margin-top: 4px;
   }
 
-  /* ===== Data Streams ===== */
   .data-stream {
     position: absolute;
     font-family: 'Share Tech Mono', monospace;
@@ -353,7 +342,6 @@
     100% { opacity: 0.3; }
   }
 
-  /* ===== Waveform ===== */
   .waveform {
     position: absolute;
     bottom: 180px;
@@ -377,7 +365,6 @@
     50% { height: 30px; }
   }
 
-  /* ===== Control Panel (Bottom) ===== */
   .control-panel {
     position: absolute;
     bottom: 40px;
@@ -391,7 +378,6 @@
     width: 500px;
   }
 
-  /* ===== API Key Section ===== */
   .api-section {
     width: 100%;
     background: rgba(0,20,40,0.6);
@@ -409,6 +395,7 @@
     color: #ff6a00;
     text-shadow: 0 0 10px rgba(255,106,0,0.5);
     animation: lockPulse 2s ease-in-out infinite;
+    min-width: 20px;
   }
 
   @keyframes lockPulse {
@@ -469,7 +456,6 @@
     box-shadow: 0 0 20px rgba(255,106,0,0.3);
   }
 
-  /* ===== Execute Button ===== */
   .execute-btn {
     position: relative;
     font-family: 'Orbitron', sans-serif;
@@ -525,7 +511,6 @@
     50% { box-shadow: 0 0 40px rgba(255,106,0,0.6), 0 0 60px rgba(255,106,0,0.3); }
   }
 
-  /* ===== Voice Selector ===== */
   .voice-section {
     display: flex;
     align-items: center;
@@ -568,7 +553,6 @@
     50% { transform: scale(1.1); }
   }
 
-  /* ===== Floating Data Labels ===== */
   .float-label {
     position: absolute;
     font-family: 'Share Tech Mono', monospace;
@@ -592,7 +576,6 @@
   .fl-3 { bottom: 250px; left: 80px; }
   .fl-4 { bottom: 250px; right: 80px; }
 
-  /* ===== Target Lock Indicator ===== */
   .target-lock {
     position: absolute;
     top: 160px;
@@ -609,7 +592,6 @@
     content: '◉ ';
   }
 
-  /* ===== Hexagon Decorations ===== */
   .hex-deco {
     position: absolute;
     width: 30px;
@@ -623,7 +605,38 @@
   .hex-deco:nth-child(3) { bottom: 130px; left: 120px; animation: rotateCW 12s linear infinite; }
   .hex-deco:nth-child(4) { bottom: 100px; right: 160px; animation: rotateCCW 9s linear infinite; }
 
-  /* ===== Responsive ===== */
+  .response-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    max-height: 200px;
+    background: rgba(0,20,40,0.8);
+    border: 1px solid rgba(0,212,255,0.5);
+    padding: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    color: #00d4ff;
+    text-align: center;
+    z-index: 100;
+    display: none;
+    clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 30px rgba(0,212,255,0.3);
+    overflow-y: auto;
+  }
+
+  .response-box.show {
+    display: block;
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+
   @media (max-width: 950px) {
     .container { transform: scale(0.7); }
   }
@@ -635,49 +648,39 @@
 </head>
 <body>
 
-  <!-- Background Effects -->
   <div class="bg-grid"></div>
   <div class="scanlines"></div>
   <div class="scan-bar"></div>
   <div class="vignette"></div>
 
-  <!-- Main Container -->
   <div class="container">
 
-    <!-- HUD Corners -->
     <div class="hud-corner tl"></div>
     <div class="hud-corner tr"></div>
     <div class="hud-corner bl"></div>
     <div class="hud-corner br"></div>
 
-    <!-- Hexagon Decorations -->
     <div class="hex-deco"></div>
     <div class="hex-deco"></div>
     <div class="hex-deco"></div>
     <div class="hex-deco"></div>
 
-    <!-- Top HUD -->
     <div class="hud-top">
       <h1>J.A.R.V.I.S — VOICE & API ASSISTANT</h1>
     </div>
 
-    <!-- Target Lock -->
     <div class="target-lock">TARGET LOCK: ACQUIRED</div>
 
-    <!-- Outer Ring -->
     <div class="outer-ring"></div>
 
-    <!-- Floating Labels -->
     <div class="float-label fl-1">SYS.CORE: ONLINE</div>
     <div class="float-label fl-2">NEURAL NET: ACTIVE</div>
     <div class="float-label fl-3">VOICE MODULE: TH</div>
     <div class="float-label fl-4">API STATUS: PENDING</div>
 
-    <!-- Data Streams -->
     <div class="data-stream top">STABILIZED CORE OUTPUT: 98.7% // JARVIS ONLINE // TARGET LOCK: ACQUIRED // SYSTEM INTEGRITY: NOMINAL //</div>
     <div class="data-stream bottom">0x4F2A // 0x8B1C // 0x3D7E // 0xA5F0 // 0x6C29 // 0xE1D4 // 0x9B87 // 0x2F63 //</div>
 
-    <!-- Side Panels -->
     <div class="side-panel left">
       <div class="panel-line"><span class="label">CPU</span><span class="value" id="cpuVal">12%</span></div>
       <div class="panel-line"><span class="label">MEM</span><span class="value" id="memVal">2.4GB</span></div>
@@ -696,39 +699,34 @@
       <div class="panel-line"><span class="label">STATUS</span><span class="value warning" id="statusVal">WAITING</span></div>
     </div>
 
-    <!-- Ring Container -->
     <div class="ring-container">
       <div class="ring ring-1"></div>
       <div class="ring ring-2"></div>
       <div class="ring ring-3"></div>
       <div class="ring ring-4"></div>
 
-      <!-- Arc Reactor -->
       <div class="arc-reactor"></div>
 
-      <!-- Status Display -->
       <div class="status-display">
         <div class="system-text">J.A.R.V.I.S SYSTEM ONLINE</div>
         <div class="percent" id="corePercent">98.7%</div>
         <div class="percent-label">STABILIZED CORE OUTPUT</div>
       </div>
 
-      <!-- Waveform -->
       <div class="waveform" id="waveform"></div>
+
+      <div class="response-box" id="responseBox"></div>
     </div>
 
-    <!-- Control Panel -->
     <div class="control-panel">
 
-      <!-- API Key Section -->
       <div class="api-section">
-        <span class="lock-icon"></span>
+        <span class="lock-icon" id="lockIcon">🔒</span>
         <input type="password" id="apiKeyInput" placeholder="ยังไม่ได้ตั้งค่า KEY — ใส่ API Key ที่นี่...">
         <button class="btn" onclick="saveKey()">SAVE</button>
         <button class="btn danger" onclick="deleteKey()">DELETE</button>
       </div>
 
-      <!-- Voice Selection -->
       <div class="voice-section">
         <button class="voice-btn active" id="voiceTh" onclick="selectVoice('th')">
           <span>🔊</span> VOICE TH
@@ -741,7 +739,6 @@
         </button>
       </div>
 
-      <!-- Execute Button -->
       <button class="execute-btn" id="executeBtn" onclick="execute()">
         EXECUTE
       </button>
@@ -763,6 +760,7 @@
 
   // ===== Live Data Updates =====
   let uptime = 0;
+  let requestCount = 0;
   setInterval(() => {
     uptime++;
     const h = String(Math.floor(uptime / 3600)).padStart(2, '0');
@@ -782,85 +780,221 @@
     document.getElementById('corePercent').textContent = percent.toFixed(1) + '%';
   }, 2000);
 
+  // ===== Global Variables =====
+  let recognition;
+  let isListening = false;
+  let currentLang = 'th';
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const statusVal = document.getElementById('statusVal');
+  const executeBtn = document.getElementById('executeBtn');
+  const lockIcon = document.getElementById('lockIcon');
+  const responseBox = document.getElementById('responseBox');
+
   // ===== API Key Functions =====
   function saveKey() {
-    const key = document.getElementById('apiKeyInput').value;
-    if (key.trim()) {
+    const key = apiKeyInput.value.trim();
+    if (key) {
       localStorage.setItem('jarvis_api_key', key);
-      document.getElementById('statusVal').textContent = 'CONNECTED';
-      document.getElementById('statusVal').style.color = '#00ff88';
+      statusVal.textContent = 'CONNECTED';
+      statusVal.className = 'value success';
       document.getElementById('powerVal').textContent = '● ONLINE';
-      document.getElementById('powerVal').style.color = '#00ff88';
-      document.querySelector('.lock-icon').textContent = '🔓';
-      document.querySelector('.lock-icon').style.color = '#00ff88';
+      document.getElementById('powerVal').className = 'value success';
+      lockIcon.textContent = '🔓';
+      lockIcon.style.color = '#00ff88';
       flashEffect();
     }
   }
 
   function deleteKey() {
     localStorage.removeItem('jarvis_api_key');
-    document.getElementById('apiKeyInput').value = '';
-    document.getElementById('statusVal').textContent = 'WAITING';
-    document.getElementById('statusVal').style.color = '#ff6a00';
+    apiKeyInput.value = '';
+    statusVal.textContent = 'WAITING';
+    statusVal.className = 'value warning';
     document.getElementById('powerVal').textContent = '⚠ LOW';
-    document.getElementById('powerVal').style.color = '#ff6a00';
-    document.querySelector('.lock-icon').textContent = '';
-    document.querySelector('.lock-icon').style.color = '#ff6a00';
+    document.getElementById('powerVal').className = 'value warning';
+    lockIcon.textContent = '🔒';
+    lockIcon.style.color = '#ff6a00';
   }
 
   // Load saved key
   const savedKey = localStorage.getItem('jarvis_api_key');
   if (savedKey) {
-    document.getElementById('apiKeyInput').value = savedKey;
-    document.getElementById('statusVal').textContent = 'CONNECTED';
-    document.getElementById('statusVal').style.color = '#00ff88';
+    apiKeyInput.value = savedKey;
+    statusVal.textContent = 'CONNECTED';
+    statusVal.className = 'value success';
     document.getElementById('powerVal').textContent = '● ONLINE';
-    document.getElementById('powerVal').style.color = '#00ff88';
-    document.querySelector('.lock-icon').textContent = '🔓';
-    document.querySelector('.lock-icon').style.color = '#00ff88';
+    document.getElementById('powerVal').className = 'value success';
+    lockIcon.textContent = '🔓';
+    lockIcon.style.color = '#00ff88';
   }
 
   // ===== Voice Selection =====
   function selectVoice(lang) {
+    currentLang = lang;
     document.getElementById('voiceTh').classList.toggle('active', lang === 'th');
     document.getElementById('voiceEn').classList.toggle('active', lang === 'en');
     document.querySelector('.fl-3').textContent = `VOICE MODULE: ${lang.toUpperCase()}`;
   }
 
-  // ===== Mic Toggle =====
-  let micActive = false;
-  function toggleMic() {
-    micActive = !micActive;
-    document.getElementById('micText').textContent = micActive ? 'LISTENING...' : 'LISTEN';
-    document.getElementById('micBtn').classList.toggle('active', micActive);
+  // ===== Speech Recognition =====
+  function startListening() {
+    if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+      alert('เบราว์เซอร์ของคุณไม่รองรับ Voice Recognition');
+      return;
+    }
 
-    if (micActive) {
-      document.getElementById('executeBtn').classList.add('active');
-      document.getElementById('executeBtn').textContent = '● PROCESSING';
-    } else {
-      document.getElementById('executeBtn').classList.remove('active');
-      document.getElementById('executeBtn').textContent = 'EXECUTE';
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = currentLang === 'th' ? 'th-TH' : 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      isListening = true;
+      updateMicStatus(true);
+      statusVal.textContent = 'LISTENING...';
+      statusVal.className = 'value warning';
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      console.log('User said:', transcript);
+      processCommand(transcript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech error:', event.error);
+      stopListening();
+      statusVal.textContent = 'ERROR: ' + event.error;
+      statusVal.className = 'value warning';
+    };
+
+    recognition.onend = () => {
+      if (isListening) {
+        try { recognition.start(); } catch(e) {}
+      } else {
+        updateMicStatus(false);
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch(e) {
+      console.error('Mic already active');
     }
   }
 
-  // ===== Execute =====
+  function stopListening() {
+    isListening = false;
+    if (recognition) recognition.stop();
+    updateMicStatus(false);
+    statusVal.textContent = 'IDLE';
+    statusVal.className = 'value';
+  }
+
+  function updateMicStatus(active) {
+    const micBtn = document.getElementById('micBtn');
+    const micText = document.getElementById('micText');
+    micText.textContent = active ? 'STOP' : 'LISTEN';
+    micBtn.classList.toggle('active', active);
+  }
+
+  function toggleMic() {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  }
+
+  // ===== Process Command =====
+  async function processCommand(text) {
+    const apiKey = apiKeyInput.value.trim();
+    
+    if (!apiKey) {
+      speak("กรุณาใส่ API Key ก่อนใช้งานครับ");
+      showResponse("⚠ ERROR: No API Key configured");
+      statusVal.textContent = 'NO KEY';
+      statusVal.className = 'value warning';
+      return;
+    }
+
+    executeBtn.textContent = '● THINKING...';
+    executeBtn.classList.add('active');
+    statusVal.textContent = 'PROCESSING...';
+    statusVal.className = 'value warning';
+
+    const startTime = Date.now();
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [
+            { role: "system", content: "คุณคือ J.A.R.V.I.S ผู้ช่วยอัจฉริยะ ตอบสั้นๆ กระชับ เป็นภาษาไทย" },
+            { role: "user", content: text }
+          ],
+          max_tokens: 150
+        })
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const data = await response.json();
+      const aiReply = data.choices[0].message.content;
+      const latency = Date.now() - startTime;
+      
+      console.log('JARVIS replied:', aiReply);
+      showResponse(aiReply);
+      speak(aiReply);
+      
+      requestCount++;
+      document.getElementById('reqVal').textContent = requestCount;
+      document.getElementById('latVal').textContent = `${latency} ms`;
+      statusVal.textContent = 'RESPONDED';
+      statusVal.className = 'value success';
+      
+    } catch (error) {
+      console.error(error);
+      speak("ขออภัย เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      showResponse(`❌ ERROR: ${error.message}`);
+      statusVal.textContent = 'FAILED';
+      statusVal.className = 'value warning';
+    } finally {
+      executeBtn.textContent = 'EXECUTE';
+      executeBtn.classList.remove('active');
+    }
+  }
+
+  // ===== Show Response =====
+  function showResponse(text) {
+    responseBox.textContent = text;
+    responseBox.classList.add('show');
+    setTimeout(() => {
+      responseBox.classList.remove('show');
+    }, 8000);
+  }
+
+  // ===== Text to Speech =====
+  function speak(text) {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = currentLang === 'th' ? 'th-TH' : 'en-US';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+
+  // ===== Execute Button =====
   function execute() {
-    const btn = document.getElementById('executeBtn');
-    btn.classList.add('active');
-    btn.textContent = '● PROCESSING';
-
-    let count = 0;
-    const interval = setInterval(() => {
-      count++;
-      document.getElementById('reqVal').textContent = count;
-      document.getElementById('latVal').textContent = `${Math.floor(100 + Math.random() * 400)} ms`;
-
-      if (count >= 5) {
-        clearInterval(interval);
-        btn.classList.remove('active');
-        btn.textContent = 'EXECUTE';
-      }
-    }, 800);
+    const manualText = prompt("พิมพ์คำสั่งของคุณ:");
+    if (manualText) processCommand(manualText);
   }
 
   // ===== Flash Effect =====
@@ -885,11 +1019,13 @@
   setInterval(() => {
     const streams = document.querySelectorAll('.data-stream');
     streams.forEach(s => {
-      let hex = '';
-      for (let i = 0; i < 8; i++) {
-        hex += '0x' + Math.floor(Math.random() * 65536).toString(16).toUpperCase().padStart(4, '0') + ' // ';
+      if (s.classList.contains('bottom')) {
+        let hex = '';
+        for (let i = 0; i < 8; i++) {
+          hex += '0x' + Math.floor(Math.random() * 65536).toString(16).toUpperCase().padStart(4, '0') + ' // ';
+        }
+        s.textContent = hex;
       }
-      if (s.classList.contains('bottom')) s.textContent = hex;
     });
   }, 3000);
 </script>
