@@ -3,46 +3,67 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="JARVIS AI Assistant - สั่งการด้วยเสียง"/>
+  <meta name="theme-color" content="#001a33"/>
   <title>J.A.R.V.I.S - AI Assistant</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2300d4ff'/></svg>">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+  <!-- Provider Badge มุมขวาบน -->
+  <div class="top-bar">
+    <div class="provider-badge" id="providerBadge">—</div>
+    <button id="toggleSettings" class="icon-btn" aria-label="ตั้งค่า">⚙️</button>
+  </div>
+
   <div class="hud">
-    <!-- วงแหวนเรืองแสงรอบๆ -->
     <div class="ring ring-1"></div>
     <div class="ring ring-2"></div>
     <div class="ring ring-3"></div>
 
-    <!-- แกนกลาง AI -->
     <div class="core" id="core">
       <div class="core-inner"></div>
       <div class="core-pulse"></div>
     </div>
 
-    <!-- แสดงคลื่นเสียง -->
     <div class="waveform" id="waveform">
       <span></span><span></span><span></span><span></span><span></span>
       <span></span><span></span><span></span><span></span><span></span>
     </div>
 
-    <!-- สถานะ -->
-    <div class="status" id="status">SYSTEM READY</div>
+    <div class="status" id="status" aria-live="polite">SYSTEM READY</div>
 
-    <!-- บทสนทนา -->
-    <div class="transcript" id="transcript"></div>
+    <!-- บทสนทนา + Typing indicator -->
+    <div class="transcript" id="transcript" 
+         role="log" aria-live="polite" aria-label="บทสนทนา"></div>
+
+    <div class="typing" id="typing" hidden aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
 
     <!-- ปุ่มควบคุม -->
     <div class="controls">
-      <button id="listenBtn" class="btn">
+      <button id="listenBtn" class="btn" aria-label="เริ่มฟังเสียง">
         <span class="dot"></span> ACTIVATE
       </button>
-      <button id="clearBtn" class="btn ghost">CLEAR</button>
+      <button id="stopBtn" class="btn ghost" aria-label="หยุดพูด" hidden>⏹ STOP</button>
+      <button id="clearBtn" class="btn ghost" aria-label="ล้างบทสนทนา">CLEAR</button>
     </div>
 
-    <!-- ตั้งค่า API -->
-    <div class="settings">
-      <input type="password" id="apiKey" placeholder="OpenAI API Key (sk-...)" />
-      <select id="langSelect">
+    <!-- พิมพ์คำถาม -->
+    <div class="text-input-row">
+      <input type="text" id="textInput" placeholder="พิมพ์คำถาม..." 
+             aria-label="พิมพ์คำถาม" />
+      <button id="sendBtn" class="btn" aria-label="ส่ง">➤</button>
+    </div>
+
+    <!-- ตั้งค่า (ซ่อนได้) -->
+    <div class="settings" id="settingsPanel" hidden>
+      <input type="password" id="apiKey" 
+             placeholder="API Key (sk-... หรือ gsk_...)"
+             autocomplete="off" spellcheck="false" />
+      <select id="langSelect" aria-label="เลือกภาษา">
         <option value="th-TH">🇹🇭 ไทย</option>
         <option value="en-US">🇺🇸 English</option>
       </select>
