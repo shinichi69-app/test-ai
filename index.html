@@ -3,488 +3,154 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="description" content="JARVIS AI Assistant - สั่งการด้วยเสียง"/>
+<meta name="description" content="JARVIS AI Assistant - Multi API + Energy Matter HUD"/>
 <meta name="theme-color" content="#001a33"/>
-<title>J.A.R.V.I.S - AI Assistant</title>
+<title>J.A.R.V.I.S - Multi API AI Assistant</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2300d4ff'/></svg>">
 
 <style>
-/* ============================================================
-   RESET & BASE
-   ============================================================ */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Segoe UI', 'SF Pro Display', -apple-system, sans-serif;
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI','SF Pro Display',-apple-system,sans-serif}
+html,body{min-height:100%;background:#000}
+body{
+  min-height:100vh;background:radial-gradient(ellipse at center,#0a1929 0%,#000 72%);
+  color:#00d4ff;display:flex;justify-content:center;align-items:center;
+  overflow-x:hidden;position:relative;padding:20px 0;
 }
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,212,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.055) 1px,transparent 1px);
+  background-size:40px 40px;animation:gridMove 20s linear infinite;pointer-events:none;z-index:0
+}
+body::after{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(circle at 50% 45%,rgba(0,212,255,.08),transparent 32%),linear-gradient(transparent 50%,rgba(0,212,255,.025) 50%);
+  background-size:auto,100% 4px;pointer-events:none;z-index:0
+}
+@keyframes gridMove{from{transform:translate(0,0)}to{transform:translate(40px,40px)}}
 
-body {
-  min-height: 100vh;
-  background: radial-gradient(ellipse at center, #0a1929 0%, #000 70%);
-  color: #00d4ff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow-x: hidden;
-  position: relative;
-  padding: 20px 0;
-}
+/* ENERGY MATTER FIELD */
+#energyCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.energy-vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,.5) 100%)}
+.energy-scan{position:fixed;left:0;right:0;height:1px;top:-5%;z-index:3;pointer-events:none;background:linear-gradient(90deg,transparent,#00d4ff,transparent);box-shadow:0 0 20px #00d4ff;opacity:.25;animation:scan 8s linear infinite}
+@keyframes scan{to{top:105%}}
 
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(0, 212, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.06) 1px, transparent 1px);
-  background-size: 40px 40px;
-  animation: gridMove 20s linear infinite;
-  pointer-events: none;
-  z-index: 0;
-}
+.top-bar{position:fixed;top:20px;right:20px;display:flex;gap:12px;align-items:center;z-index:100}
+.provider-badge{padding:6px 14px;border-radius:20px;font-size:11px;letter-spacing:2px;background:rgba(0,30,50,.85);border:1px solid rgba(0,212,255,.3);color:#00d4ff;transition:.3s;backdrop-filter:blur(10px)}
+.provider-badge.groq{color:#ff9944;border-color:#ff9944;box-shadow:0 0 15px rgba(255,153,68,.4)}
+.provider-badge.openai{color:#00ffaa;border-color:#00ffaa;box-shadow:0 0 15px rgba(0,255,170,.4)}
+.provider-badge.gemini{color:#8ab4ff;border-color:#8ab4ff;box-shadow:0 0 15px rgba(138,180,255,.4)}
+.provider-badge.openrouter{color:#d7a7ff;border-color:#d7a7ff;box-shadow:0 0 15px rgba(215,167,255,.4)}
+.provider-badge.custom{color:#ffe66d;border-color:#ffe66d;box-shadow:0 0 15px rgba(255,230,109,.4)}
+.icon-btn{background:rgba(0,30,50,.85);border:1px solid rgba(0,212,255,.4);color:#00d4ff;width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:18px;transition:.3s;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
+.icon-btn:hover{box-shadow:0 0 20px rgba(0,212,255,.6);transform:rotate(90deg)}
 
-@keyframes gridMove {
-  from { transform: translate(0, 0); }
-  to   { transform: translate(40px, 40px); }
-}
+.hud{position:relative;width:100%;max-width:800px;padding:40px 30px;display:flex;flex-direction:column;align-items:center;gap:22px;z-index:2}
+.system-readout{position:fixed;left:20px;top:20px;z-index:20;font:10px/1.7 'Courier New',monospace;letter-spacing:2px;color:rgba(0,212,255,.55);text-shadow:0 0 8px #00d4ff;pointer-events:none}
+.system-readout b{color:#00ffaa}
+.rings-wrapper{position:relative;width:340px;height:340px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.ring{position:absolute;border-radius:50%;border:2px solid rgba(0,212,255,.4);box-shadow:0 0 30px rgba(0,212,255,.4),inset 0 0 30px rgba(0,212,255,.2);pointer-events:none}
+.ring-1{width:220px;height:220px;animation:spin 12s linear infinite;border-style:dashed}
+.ring-2{width:280px;height:280px;animation:spinReverse 20s linear infinite;border-color:rgba(0,212,255,.25)}
+.ring-3{width:340px;height:340px;border-top-color:transparent;border-bottom-color:transparent;animation:spin 8s linear infinite}
+.ring-4{width:310px;height:150px;border-color:rgba(0,255,170,.18);transform:rotate(35deg);animation:orbit 9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}} @keyframes spinReverse{to{transform:rotate(-360deg)}}
+@keyframes orbit{to{transform:rotate(395deg)}}
 
-/* ============================================================
-   TOP BAR (Provider badge + Settings)
-   ============================================================ */
-.top-bar {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  z-index: 100;
-}
+.core{position:relative;width:140px;height:140px;display:flex;align-items:center;justify-content:center;z-index:5}
+.core-inner{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle,#00d4ff 0%,#0066aa 40%,#001a33 80%);box-shadow:0 0 60px #00d4ff,inset 0 0 40px rgba(255,255,255,.4);transition:.3s}
+.core-inner::after{content:'';position:absolute;inset:13%;border-radius:50%;border:1px solid rgba(255,255,255,.55);box-shadow:inset 0 0 20px rgba(255,255,255,.4)}
+.core-pulse{position:absolute;width:100%;height:100%;border-radius:50%;border:3px solid #00d4ff;animation:pulse 2s ease-out infinite;pointer-events:none}
+@keyframes pulse{0%{transform:scale(1);opacity:1}100%{transform:scale(2);opacity:0}}
+.core.listening .core-inner{background:radial-gradient(circle,#ff3366 0%,#990022 60%,#330010 100%);box-shadow:0 0 80px #ff3366,inset 0 0 40px rgba(255,255,255,.5);animation:coreBeat .6s ease-in-out infinite alternate}
+.core.speaking .core-inner{background:radial-gradient(circle,#00ffaa 0%,#009966 60%,#003322 100%);box-shadow:0 0 80px #00ffaa,inset 0 0 40px rgba(255,255,255,.5);animation:coreBeat .3s ease-in-out infinite alternate}
+.core.processing .core-inner{background:radial-gradient(circle,#fff 0%,#00d4ff 25%,#0055aa 60%,#001a33 100%);box-shadow:0 0 100px #00d4ff,inset 0 0 50px #fff;animation:coreBeat .45s ease-in-out infinite alternate}
+.core.error .core-inner{background:radial-gradient(circle,#ff3366 0%,#660000 60%,#330000 100%);box-shadow:0 0 80px #ff3366}
+@keyframes coreBeat{from{transform:scale(1)}to{transform:scale(1.1)}}
 
-.provider-badge {
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 11px;
-  letter-spacing: 2px;
-  background: rgba(0, 30, 50, 0.85);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  color: #00d4ff;
-  transition: all 0.3s;
-  backdrop-filter: blur(10px);
-}
-.provider-badge.groq   { color: #ff9944; border-color: #ff9944; box-shadow: 0 0 15px rgba(255,153,68,0.4); }
-.provider-badge.openai { color: #00ffaa; border-color: #00ffaa; box-shadow: 0 0 15px rgba(0,255,170,0.4); }
+.waveform{display:flex;gap:6px;height:50px;align-items:center;opacity:.3;transition:.3s}
+.waveform.active{opacity:1}.waveform span{width:4px;height:10px;background:#00d4ff;border-radius:2px;box-shadow:0 0 10px #00d4ff}
+.waveform.active span{animation:wave .8s ease-in-out infinite}
+.waveform span:nth-child(2){animation-delay:.1s}.waveform span:nth-child(3){animation-delay:.2s}.waveform span:nth-child(4){animation-delay:.3s}.waveform span:nth-child(5){animation-delay:.4s}.waveform span:nth-child(6){animation-delay:.5s}.waveform span:nth-child(7){animation-delay:.4s}.waveform span:nth-child(8){animation-delay:.3s}.waveform span:nth-child(9){animation-delay:.2s}.waveform span:nth-child(10){animation-delay:.1s}
+@keyframes wave{0%,100%{height:10px}50%{height:45px}}
 
-.icon-btn {
-  background: rgba(0, 30, 50, 0.85);
-  border: 1px solid rgba(0, 212, 255, 0.4);
-  color: #00d4ff;
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 18px;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(10px);
-}
-.icon-btn:hover {
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
-  transform: rotate(90deg);
-}
+.status{font-size:14px;letter-spacing:4px;color:#00d4ff;text-shadow:0 0 10px #00d4ff;font-weight:600;text-align:center;min-height:20px}
+.transcript{width:100%;max-height:200px;overflow-y:auto;padding:15px;background:rgba(0,30,50,.5);border:1px solid rgba(0,212,255,.3);border-radius:8px;font-size:14px;line-height:1.6;backdrop-filter:blur(10px);min-height:60px}
+.transcript::-webkit-scrollbar{width:6px}.transcript::-webkit-scrollbar-thumb{background:#00d4ff;border-radius:3px}
+.msg{margin-bottom:8px;word-wrap:break-word}.msg.user{color:#7fdbff}.msg.ai{color:#00ffaa}.msg .label{font-weight:bold;margin-right:6px;opacity:.7}
+.typing{display:flex;gap:6px;padding:4px 16px;justify-content:flex-start;width:100%}.typing[hidden]{display:none}
+.typing span{width:8px;height:8px;border-radius:50%;background:#00ffaa;box-shadow:0 0 10px #00ffaa;animation:bounce 1.4s infinite}.typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-10px)}}
 
-/* ============================================================
-   HUD CONTAINER
-   ============================================================ */
-.hud {
-  position: relative;
-  width: 100%;
-  max-width: 800px;
-  padding: 40px 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 22px;
-  z-index: 2;
-}
+.controls{display:flex;gap:12px;margin-top:5px;flex-wrap:wrap;justify-content:center}
+.btn{padding:14px 28px;background:linear-gradient(135deg,#005577,#00aadd);color:#fff;border:1px solid #00d4ff;border-radius:6px;font-size:13px;letter-spacing:3px;font-weight:600;cursor:pointer;box-shadow:0 0 20px rgba(0,212,255,.4);transition:.3s;display:flex;align-items:center;gap:10px;font-family:inherit}
+.btn:hover{box-shadow:0 0 30px rgba(0,212,255,.8);transform:translateY(-2px)}.btn:active{transform:translateY(0)}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.ghost{background:transparent;box-shadow:none}.btn.ghost:hover{background:rgba(0,212,255,.1)}
+.btn .dot{width:10px;height:10px;border-radius:50%;background:#ff3366;box-shadow:0 0 10px #ff3366;transition:.3s}.btn.active .dot{background:#00ffaa;box-shadow:0 0 15px #00ffaa;animation:blink 1s infinite}@keyframes blink{50%{opacity:.3}}
 
-/* ============================================================
-   RINGS + CORE
-   ============================================================ */
-.rings-wrapper {
-  position: relative;
-  width: 340px;
-  height: 340px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 10px;
-}
+.text-input-row{display:flex;gap:10px;width:100%}.text-input-row input{flex:1;padding:12px 18px;background:rgba(0,30,50,.7);border:1px solid rgba(0,212,255,.4);border-radius:8px;color:#00d4ff;font-size:14px;outline:none;font-family:inherit;transition:.3s}
+.text-input-row input:focus{border-color:#00d4ff;box-shadow:0 0 15px rgba(0,212,255,.5)}.text-input-row input::placeholder{color:rgba(0,212,255,.4)}.text-input-row .btn{padding:12px 20px;letter-spacing:0}
 
-.ring {
-  position: absolute;
-  border-radius: 50%;
-  border: 2px solid rgba(0, 212, 255, 0.4);
-  box-shadow: 0 0 30px rgba(0, 212, 255, 0.4),
-              inset 0 0 30px rgba(0, 212, 255, 0.2);
-  pointer-events: none;
-}
+/* MULTI API SETTINGS */
+.settings{width:100%;padding:15px;display:grid;grid-template-columns:1fr 1fr;gap:10px;background:rgba(0,15,28,.82);border:1px solid rgba(0,212,255,.28);border-radius:12px;backdrop-filter:blur(15px);box-shadow:0 0 30px rgba(0,212,255,.08)}
+.settings[hidden]{display:none}.setting-full{grid-column:1/-1}.setting-label{display:block;font-size:10px;letter-spacing:2px;color:#70eaff;margin:2px 0 6px}
+.settings input,.settings select{width:100%;padding:10px 14px;background:rgba(0,30,50,.8);border:1px solid rgba(0,212,255,.4);border-radius:6px;color:#00d4ff;font-size:13px;outline:none;font-family:inherit}
+.settings input:focus,.settings select:focus{border-color:#00d4ff;box-shadow:0 0 15px rgba(0,212,255,.5)}
+.settings select option{background:#001a33;color:#00d4ff}.setting-actions{display:flex;gap:8px;grid-column:1/-1}.setting-actions .btn{padding:9px 15px;font-size:10px;letter-spacing:1px}
+.api-note{font-size:10px;line-height:1.5;color:rgba(170,235,255,.6);grid-column:1/-1}.api-note b{color:#00ffaa}
 
-.ring-1 {
-  width: 220px; height: 220px;
-  animation: spin 12s linear infinite;
-  border-style: dashed;
-}
-.ring-2 {
-  width: 280px; height: 280px;
-  animation: spinReverse 20s linear infinite;
-  border-color: rgba(0, 212, 255, 0.25);
-}
-.ring-3 {
-  width: 340px; height: 340px;
-  border-top-color: transparent;
-  border-bottom-color: transparent;
-  animation: spin 8s linear infinite;
-}
+/* HUD DATA */
+.hud-data{position:fixed;right:20px;bottom:20px;z-index:20;text-align:right;font:9px/1.7 'Courier New',monospace;letter-spacing:1px;color:rgba(0,212,255,.45);pointer-events:none}
+.hud-data b{color:rgba(0,255,170,.8)}
 
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes spinReverse { to { transform: rotate(-360deg); } }
-
-.core {
-  position: relative;
-  width: 140px;
-  height: 140px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 5;
+@media(max-width:600px){
+ .hud{padding:20px 15px;gap:15px}.rings-wrapper{width:240px;height:240px}.ring-1{width:160px;height:160px}.ring-2{width:200px;height:200px}.ring-3{width:240px;height:240px}.ring-4{width:220px;height:100px}.core{width:100px;height:100px}
+ .btn{padding:12px 18px;font-size:11px;letter-spacing:2px}.transcript{max-height:150px;font-size:13px}.top-bar{top:10px;right:10px}.provider-badge{font-size:10px;padding:5px 10px}.icon-btn{width:36px;height:36px;font-size:16px}
+ .system-readout{top:10px;left:10px;font-size:8px}.hud-data{right:10px;bottom:10px;font-size:7px}.settings{grid-template-columns:1fr}.setting-full,.setting-actions,.api-note{grid-column:auto}
 }
-
-.core-inner {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: radial-gradient(circle, #00d4ff 0%, #0066aa 40%, #001a33 80%);
-  box-shadow: 0 0 60px #00d4ff, inset 0 0 40px rgba(255,255,255,0.4);
-  transition: all 0.3s;
-}
-
-.core-pulse {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  border: 3px solid #00d4ff;
-  animation: pulse 2s ease-out infinite;
-  pointer-events: none;
-}
-
-@keyframes pulse {
-  0%   { transform: scale(1);   opacity: 1; }
-  100% { transform: scale(2);   opacity: 0; }
-}
-
-.core.listening .core-inner {
-  background: radial-gradient(circle, #ff3366 0%, #990022 60%, #330010 100%);
-  box-shadow: 0 0 80px #ff3366, inset 0 0 40px rgba(255,255,255,0.5);
-  animation: coreBeat 0.6s ease-in-out infinite alternate;
-}
-.core.speaking .core-inner {
-  background: radial-gradient(circle, #00ffaa 0%, #009966 60%, #003322 100%);
-  box-shadow: 0 0 80px #00ffaa, inset 0 0 40px rgba(255,255,255,0.5);
-  animation: coreBeat 0.3s ease-in-out infinite alternate;
-}
-.core.error .core-inner {
-  background: radial-gradient(circle, #ff3366 0%, #660000 60%, #330000 100%);
-  box-shadow: 0 0 80px #ff3366;
-}
-
-@keyframes coreBeat {
-  from { transform: scale(1); }
-  to   { transform: scale(1.1); }
-}
-
-/* ============================================================
-   WAVEFORM
-   ============================================================ */
-.waveform {
-  display: flex;
-  gap: 6px;
-  height: 50px;
-  align-items: center;
-  opacity: 0.3;
-  transition: opacity 0.3s;
-}
-.waveform.active { opacity: 1; }
-.waveform span {
-  width: 4px;
-  height: 10px;
-  background: #00d4ff;
-  border-radius: 2px;
-  box-shadow: 0 0 10px #00d4ff;
-}
-.waveform.active span {
-  animation: wave 0.8s ease-in-out infinite;
-}
-.waveform span:nth-child(2) { animation-delay: 0.1s; }
-.waveform span:nth-child(3) { animation-delay: 0.2s; }
-.waveform span:nth-child(4) { animation-delay: 0.3s; }
-.waveform span:nth-child(5) { animation-delay: 0.4s; }
-.waveform span:nth-child(6) { animation-delay: 0.5s; }
-.waveform span:nth-child(7) { animation-delay: 0.4s; }
-.waveform span:nth-child(8) { animation-delay: 0.3s; }
-.waveform span:nth-child(9) { animation-delay: 0.2s; }
-.waveform span:nth-child(10){ animation-delay: 0.1s; }
-
-@keyframes wave {
-  0%, 100% { height: 10px; }
-  50%      { height: 45px; }
-}
-
-/* ============================================================
-   STATUS
-   ============================================================ */
-.status {
-  font-size: 14px;
-  letter-spacing: 4px;
-  color: #00d4ff;
-  text-shadow: 0 0 10px #00d4ff;
-  font-weight: 600;
-  text-align: center;
-  min-height: 20px;
-}
-
-/* ============================================================
-   TRANSCRIPT
-   ============================================================ */
-.transcript {
-  width: 100%;
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 15px;
-  background: rgba(0, 30, 50, 0.5);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 8px;
-  font-size: 14px;
-  line-height: 1.6;
-  backdrop-filter: blur(10px);
-  min-height: 60px;
-}
-.transcript::-webkit-scrollbar { width: 6px; }
-.transcript::-webkit-scrollbar-thumb {
-  background: #00d4ff;
-  border-radius: 3px;
-}
-
-.msg { margin-bottom: 8px; word-wrap: break-word; }
-.msg.user { color: #7fdbff; }
-.msg.ai   { color: #00ffaa; }
-.msg .label {
-  font-weight: bold;
-  margin-right: 6px;
-  opacity: 0.7;
-}
-
-/* ============================================================
-   TYPING INDICATOR
-   ============================================================ */
-.typing {
-  display: flex;
-  gap: 6px;
-  padding: 4px 16px;
-  justify-content: flex-start;
-  width: 100%;
-}
-.typing[hidden] { display: none; }
-.typing span {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: #00ffaa;
-  box-shadow: 0 0 10px #00ffaa;
-  animation: bounce 1.4s infinite;
-}
-.typing span:nth-child(2) { animation-delay: 0.2s; }
-.typing span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes bounce {
-  0%, 60%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-10px); }
-}
-
-/* ============================================================
-   CONTROLS
-   ============================================================ */
-.controls {
-  display: flex;
-  gap: 12px;
-  margin-top: 5px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.btn {
-  padding: 14px 28px;
-  background: linear-gradient(135deg, #005577, #00aadd);
-  color: #fff;
-  border: 1px solid #00d4ff;
-  border-radius: 6px;
-  font-size: 13px;
-  letter-spacing: 3px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: inherit;
-}
-.btn:hover {
-  box-shadow: 0 0 30px rgba(0, 212, 255, 0.8);
-  transform: translateY(-2px);
-}
-.btn:active { transform: translateY(0); }
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-.btn.ghost {
-  background: transparent;
-  box-shadow: none;
-}
-.btn.ghost:hover {
-  background: rgba(0, 212, 255, 0.1);
-}
-.btn .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ff3366;
-  box-shadow: 0 0 10px #ff3366;
-  transition: all 0.3s;
-}
-.btn.active .dot {
-  background: #00ffaa;
-  box-shadow: 0 0 15px #00ffaa;
-  animation: blink 1s infinite;
-}
-@keyframes blink {
-  50% { opacity: 0.3; }
-}
-
-/* ============================================================
-   TEXT INPUT ROW
-   ============================================================ */
-.text-input-row {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-}
-.text-input-row input {
-  flex: 1;
-  padding: 12px 18px;
-  background: rgba(0, 30, 50, 0.7);
-  border: 1px solid rgba(0, 212, 255, 0.4);
-  border-radius: 8px;
-  color: #00d4ff;
-  font-size: 14px;
-  outline: none;
-  font-family: inherit;
-  transition: all 0.3s;
-}
-.text-input-row input:focus {
-  border-color: #00d4ff;
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
-}
-.text-input-row input::placeholder { color: rgba(0, 212, 255, 0.4); }
-.text-input-row .btn { padding: 12px 20px; letter-spacing: 0; }
-
-/* ============================================================
-   SETTINGS PANEL
-   ============================================================ */
-.settings {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-}
-.settings[hidden] { display: none; }
-.settings input, .settings select {
-  flex: 1;
-  padding: 10px 14px;
-  background: rgba(0, 30, 50, 0.7);
-  border: 1px solid rgba(0, 212, 255, 0.4);
-  border-radius: 6px;
-  color: #00d4ff;
-  font-size: 13px;
-  outline: none;
-  font-family: inherit;
-  transition: all 0.3s;
-}
-.settings input:focus, .settings select:focus {
-  border-color: #00d4ff;
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
-}
-.settings select option { background: #001a33; color: #00d4ff; }
-
-/* ============================================================
-   MOBILE
-   ============================================================ */
-@media (max-width: 600px) {
-  .hud { padding: 20px 15px; gap: 15px; }
-  .rings-wrapper { width: 240px; height: 240px; }
-  .ring-1 { width: 160px; height: 160px; }
-  .ring-2 { width: 200px; height: 200px; }
-  .ring-3 { width: 240px; height: 240px; }
-  .core { width: 100px; height: 100px; }
-  .btn { padding: 12px 18px; font-size: 11px; letter-spacing: 2px; }
-  .transcript { max-height: 150px; font-size: 13px; }
-  .top-bar { top: 10px; right: 10px; }
-  .provider-badge { font-size: 10px; padding: 5px 10px; }
-  .icon-btn { width: 36px; height: 36px; font-size: 16px; }
-}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important}}
 </style>
 </head>
 <body>
 
-<!-- Provider Badge + Settings Toggle -->
+<canvas id="energyCanvas"></canvas>
+<div class="energy-vignette"></div>
+<div class="energy-scan"></div>
+
+<div class="system-readout">
+  J.A.R.V.I.S // <b id="systemState">ONLINE</b><br>
+  NEURAL FIELD // ACTIVE<br>
+  MATTER CORE // <b id="matterState">STABLE</b>
+</div>
+
 <div class="top-bar">
   <div class="provider-badge" id="providerBadge">—</div>
   <button id="toggleSettings" class="icon-btn" aria-label="ตั้งค่า" title="ตั้งค่า">⚙️</button>
 </div>
 
 <div class="hud">
-
-  <!-- Rings + Core -->
   <div class="rings-wrapper">
     <div class="ring ring-1"></div>
     <div class="ring ring-2"></div>
     <div class="ring ring-3"></div>
+    <div class="ring ring-4"></div>
     <div class="core" id="core">
       <div class="core-inner"></div>
       <div class="core-pulse"></div>
     </div>
   </div>
 
-  <!-- Waveform -->
   <div class="waveform" id="waveform">
     <span></span><span></span><span></span><span></span><span></span>
     <span></span><span></span><span></span><span></span><span></span>
   </div>
 
-  <!-- Status -->
   <div class="status" id="status" aria-live="polite">SYSTEM READY</div>
-
-  <!-- Transcript -->
   <div class="transcript" id="transcript" role="log" aria-live="polite" aria-label="บทสนทนา"></div>
 
-  <!-- Typing indicator -->
   <div class="typing" id="typing" hidden aria-hidden="true">
     <span></span><span></span><span></span>
   </div>
 
-  <!-- Controls -->
   <div class="controls">
     <button id="listenBtn" class="btn" aria-label="เริ่มฟังเสียง">
       <span class="dot"></span> ACTIVATE
@@ -493,428 +159,479 @@ body::before {
     <button id="clearBtn" class="btn ghost" aria-label="ล้างบทสนทนา">CLEAR</button>
   </div>
 
-  <!-- Text input -->
   <div class="text-input-row">
     <input type="text" id="textInput" placeholder="พิมพ์คำถาม..." aria-label="พิมพ์คำถาม" />
     <button id="sendBtn" class="btn" aria-label="ส่ง">➤</button>
   </div>
 
-  <!-- Settings -->
   <div class="settings" id="settingsPanel" hidden>
-    <input type="password" id="apiKey"
-           placeholder="API Key (sk-... หรือ gsk_...)"
-           autocomplete="off" spellcheck="false" />
-    <select id="langSelect" aria-label="เลือกภาษา">
-      <option value="th-TH">🇹🇭 ไทย</option>
-      <option value="en-US">🇺🇸 English</option>
-    </select>
+    <div>
+      <label class="setting-label" for="providerSelect">API PROVIDER</label>
+      <select id="providerSelect">
+        <option value="openai">OpenAI</option>
+        <option value="groq">Groq</option>
+        <option value="gemini">Google Gemini</option>
+        <option value="openrouter">OpenRouter</option>
+        <option value="custom">Custom / OpenAI Compatible</option>
+      </select>
+    </div>
+    <div>
+      <label class="setting-label" for="modelSelect">MODEL</label>
+      <select id="modelSelect"></select>
+    </div>
+    <div class="setting-full">
+      <label class="setting-label" for="apiKey">API KEY</label>
+      <input type="password" id="apiKey" placeholder="ใส่ API Key ของค่ายที่เลือก..." autocomplete="off" spellcheck="false" />
+    </div>
+    <div class="setting-full" id="customUrlWrap" hidden>
+      <label class="setting-label" for="customUrl">CUSTOM ENDPOINT</label>
+      <input type="text" id="customUrl" placeholder="https://your-server.example/v1/chat/completions" />
+    </div>
+    <div>
+      <label class="setting-label" for="langSelect">VOICE LANGUAGE</label>
+      <select id="langSelect">
+        <option value="th-TH">🇹🇭 ไทย</option>
+        <option value="en-US">🇺🇸 English</option>
+      </select>
+    </div>
+    <div>
+      <label class="setting-label" for="temperature">TEMPERATURE</label>
+      <input type="number" id="temperature" min="0" max="2" step=".1" value=".7" />
+    </div>
+    <div class="setting-actions">
+      <button id="saveApiBtn" class="btn">SAVE CONFIG</button>
+      <button id="testApiBtn" class="btn ghost">TEST API</button>
+    </div>
+    <div class="api-note">
+      <b>หมายเหตุ:</b> API Key ถูกเก็บไว้ใน browser ของเครื่องนี้เท่านั้นตามโค้ดนี้
+      การเรียก API จาก HTML โดยตรงอาจถูกจำกัดด้วย CORS ของผู้ให้บริการบางราย
+      หากใช้จริงในงาน production ควรย้าย API Key ไป backend/proxy
+    </div>
   </div>
+</div>
 
+<div class="hud-data">
+  FIELD <b id="fieldPct">100%</b><br>
+  PARTICLES <b id="particleCount">0</b><br>
+  ENERGY <b id="energyPct">74%</b><br>
+  API <b id="latency">-- ms</b>
 </div>
 
 <script>
 /* ============================================================
-   JARVIS AI - Fixed Version
+   JARVIS MULTI-API + ENERGY MATTER
+   รักษา ID/ปุ่ม/เสียง/ระบบเดิม และเพิ่มระบบใหม่
    ============================================================ */
 
-// ---------- DOM References ----------
-const core          = document.getElementById('core');
-const statusEl      = document.getElementById('status');
-const transcript    = document.getElementById('transcript');
-const listenBtn     = document.getElementById('listenBtn');
-const clearBtn      = document.getElementById('clearBtn');
-const stopBtn       = document.getElementById('stopBtn');
-const waveform      = document.getElementById('waveform');
-const typing        = document.getElementById('typing');
-const apiKeyInput   = document.getElementById('apiKey');
-const langSelect    = document.getElementById('langSelect');
-const textInput     = document.getElementById('textInput');
-const sendBtn       = document.getElementById('sendBtn');
-const toggleSettings= document.getElementById('toggleSettings');
-const settingsPanel = document.getElementById('settingsPanel');
-const providerBadge = document.getElementById('providerBadge');
+const core=document.getElementById('core');
+const statusEl=document.getElementById('status');
+const transcript=document.getElementById('transcript');
+const listenBtn=document.getElementById('listenBtn');
+const clearBtn=document.getElementById('clearBtn');
+const stopBtn=document.getElementById('stopBtn');
+const waveform=document.getElementById('waveform');
+const typing=document.getElementById('typing');
+const apiKeyInput=document.getElementById('apiKey');
+const langSelect=document.getElementById('langSelect');
+const textInput=document.getElementById('textInput');
+const sendBtn=document.getElementById('sendBtn');
+const toggleSettings=document.getElementById('toggleSettings');
+const settingsPanel=document.getElementById('settingsPanel');
+const providerBadge=document.getElementById('providerBadge');
+const providerSelect=document.getElementById('providerSelect');
+const modelSelect=document.getElementById('modelSelect');
+const customUrl=document.getElementById('customUrl');
+const customUrlWrap=document.getElementById('customUrlWrap');
+const temperatureInput=document.getElementById('temperature');
+const saveApiBtn=document.getElementById('saveApiBtn');
+const testApiBtn=document.getElementById('testApiBtn');
+const systemState=document.getElementById('systemState');
+const matterState=document.getElementById('matterState');
+const fieldPct=document.getElementById('fieldPct');
+const particleCount=document.getElementById('particleCount');
+const energyPct=document.getElementById('energyPct');
+const latencyEl=document.getElementById('latency');
 
-// ---------- State ----------
-let isListening = false;
-let recognition = null;
-let conversationHistory = [
-  {
-    role: 'system',
-    content: 'คุณคือ JARVIS ผู้ช่วย AI อัจฉริยะ สไตล์ Iron Man ตอบสุภาพ กระชับ ตรงประเด็น เรียกผู้ใช้ว่า "ท่าน" ตอบเป็นภาษาเดียวกับที่ผู้ใช้ถาม'
+let isListening=false, recognition=null, processing=false, currentLatency=0;
+
+let conversationHistory=[{
+  role:'system',
+  content:'คุณคือ JARVIS ผู้ช่วย AI อัจฉริยะ สไตล์ Iron Man ตอบสุภาพ กระชับ ตรงประเด็น เรียกผู้ใช้ว่า "ท่าน" ตอบเป็นภาษาเดียวกับที่ผู้ใช้ถาม'
+}];
+
+/* ============================================================
+   MULTI API CONFIG
+   ============================================================ */
+const PROVIDERS={
+  openai:{
+    name:'OpenAI',
+    className:'openai',
+    url:'https://api.openai.com/v1/chat/completions',
+    models:['gpt-4o-mini','gpt-4o','gpt-4.1-mini','gpt-4.1'],
+    type:'openai'
+  },
+  groq:{
+    name:'Groq',
+    className:'groq',
+    url:'https://api.groq.com/openai/v1/chat/completions',
+    models:['llama-3.3-70b-versatile','llama-3.1-8b-instant','openai/gpt-oss-120b','openai/gpt-oss-20b'],
+    type:'openai'
+  },
+  gemini:{
+    name:'Gemini',
+    className:'gemini',
+    url:'https://generativelanguage.googleapis.com/v1beta/models/',
+    models:['gemini-2.5-flash','gemini-2.5-pro','gemini-2.0-flash'],
+    type:'gemini'
+  },
+  openrouter:{
+    name:'OpenRouter',
+    className:'openrouter',
+    url:'https://openrouter.ai/api/v1/chat/completions',
+    models:['openai/gpt-4o-mini','google/gemini-2.5-flash','meta-llama/llama-3.3-70b-instruct','qwen/qwen3-32b'],
+    type:'openai'
+  },
+  custom:{
+    name:'Custom',
+    className:'custom',
+    url:'',
+    models:['custom-model'],
+    type:'openai'
   }
-];
+};
 
-// ---------- โหลด API key ที่เคยบันทึก ----------
-apiKeyInput.value = localStorage.getItem('jarvis_api_key') || '';
-apiKeyInput.addEventListener('change', () => {
-  localStorage.setItem('jarvis_api_key', apiKeyInput.value.trim());
+function storageKey(provider){return 'jarvis_'+provider+'_api_key'}
+function loadProviderConfig(){
+  const p=localStorage.getItem('jarvis_provider')||'openai';
+  providerSelect.value=PROVIDERS[p]?p:'openai';
+  langSelect.value=localStorage.getItem('jarvis_lang')||'th-TH';
+  customUrl.value=localStorage.getItem('jarvis_custom_url')||'';
+  temperatureInput.value=localStorage.getItem('jarvis_temperature')||'.7';
+  refreshProviderUI(false);
+}
+function refreshProviderUI(loadKey=true){
+  const cfg=PROVIDERS[providerSelect.value];
+  modelSelect.innerHTML='';
+  cfg.models.forEach(m=>{
+    const o=document.createElement('option');o.value=m;o.textContent=m;modelSelect.appendChild(o);
+  });
+  const savedModel=localStorage.getItem('jarvis_'+providerSelect.value+'_model');
+  if(savedModel && cfg.models.includes(savedModel)) modelSelect.value=savedModel;
+  if(loadKey) apiKeyInput.value=localStorage.getItem(storageKey(providerSelect.value))||'';
+  customUrlWrap.hidden=providerSelect.value!=='custom';
+  providerBadge.textContent='● '+cfg.name;
+  providerBadge.className='provider-badge '+cfg.className;
+}
+providerSelect.addEventListener('change',()=>refreshProviderUI(true));
+modelSelect.addEventListener('change',()=>localStorage.setItem('jarvis_'+providerSelect.value+'_model',modelSelect.value));
+saveApiBtn.addEventListener('click',()=>{
+  localStorage.setItem(storageKey(providerSelect.value),apiKeyInput.value.trim());
+  localStorage.setItem('jarvis_provider',providerSelect.value);
+  localStorage.setItem('jarvis_lang',langSelect.value);
+  localStorage.setItem('jarvis_custom_url',customUrl.value.trim());
+  localStorage.setItem('jarvis_temperature',temperatureInput.value);
+  localStorage.setItem('jarvis_'+providerSelect.value+'_model',modelSelect.value);
+  setStatus('✓ CONFIG SAVED');
+  setTimeout(()=>setStatus('SYSTEM READY'),1200);
 });
+toggleSettings.addEventListener('click',()=>settingsPanel.hidden=!settingsPanel.hidden);
 
-// ---------- Toggle settings ----------
-toggleSettings.addEventListener('click', () => {
-  settingsPanel.hidden = !settingsPanel.hidden;
-});
-
-// ============================================================
-// 🔧 แก้ไข: กำหนด Provider + Model ที่ถูกต้อง
-// ============================================================
-function getApiConfig(apiKey) {
-  if (apiKey.startsWith('gsk_')) {
-    return {
-      url: 'https://api.groq.com/openai/v1/chat/completions',
-      // ✅ โมเดลที่ Groq รองรับจริง (เรียงตามความสามารถ)
-      models: [
-        'llama-3.3-70b-versatile',   // ตัวหลัก (ใหม่สุด)
-        'llama-3.1-70b-versatile',   // สำรอง
-        'llama3-70b-8192',           // สำรอง 2
-        'llama3-8b-8192'             // สำรอง 3 (เล็ก เร็ว)
-      ],
-      name: 'Groq'
-    };
-  }
-  if (apiKey.startsWith('sk-')) {
-    return {
-      url: 'https://api.openai.com/v1/chat/completions',
-      models: [
-        'gpt-4o-mini',   // ตัวหลัก (ถูกและเร็ว)
-        'gpt-3.5-turbo', // สำรอง
-        'gpt-4o'         // สำรอง (แพงกว่า)
-      ],
-      name: 'OpenAI'
-    };
-  }
-  throw new Error('API Key ไม่ถูกต้อง (ต้องขึ้นต้นด้วย sk- หรือ gsk-)');
+function getApiConfig(){
+  const key=apiKeyInput.value.trim();
+  if(!key) throw new Error('กรุณาใส่ API Key ก่อนครับ');
+  const cfg=PROVIDERS[providerSelect.value];
+  if(!cfg) throw new Error('ไม่พบ Provider');
+  if(providerSelect.value==='custom' && !customUrl.value.trim()) throw new Error('กรุณาใส่ Custom Endpoint');
+  return {...cfg,key,model:modelSelect.value,customUrl:customUrl.value.trim()};
 }
 
-// ============================================================
-// SPEECH RECOGNITION
-// ============================================================
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+function buildOpenAIHeaders(cfg){
+  const h={'Content-Type':'application/json','Authorization':'Bearer '+cfg.key};
+  if(providerSelect.value==='openrouter'){
+    h['HTTP-Referer']=location.href;
+    h['X-Title']='JARVIS Multi API';
+  }
+  return h;
+}
 
-if (!SpeechRecognition) {
-  setStatus('⚠ เบราว์เซอร์ไม่รองรับ กรุณาใช้ Chrome');
-  listenBtn.disabled = true;
-} else {
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = langSelect.value;
-
-  recognition.onstart = () => {
-    isListening = true;
-    core.classList.add('listening');
-    core.classList.remove('speaking', 'error');
-    waveform.classList.add('active');
-    listenBtn.classList.add('active');
-    setStatus('🎤 กำลังฟัง...');
+async function callOpenAICompatible(cfg,messages){
+  const url=providerSelect.value==='custom'?cfg.customUrl:cfg.url;
+  const body={
+    model:cfg.model,
+    messages,
+    temperature:Number(temperatureInput.value)||.7,
+    max_tokens:500
   };
-
-  recognition.onresult = (e) => {
-    const transcriptText = Array.from(e.results)
-      .map(r => r[0].transcript).join('');
-    setStatus(`🎤 "${transcriptText}"`);
-
-    if (e.results[e.results.length - 1].isFinal) {
-      handleUserInput(transcriptText);
-    }
-  };
-
-  recognition.onerror = (e) => {
-    console.error('Speech error:', e.error);
-    let msg = `⚠ ${e.error}`;
-    if (e.error === 'not-allowed') msg = '⚠ กรุณาอนุญาตไมโครโฟน';
-    if (e.error === 'no-speech')   msg = '⚠ ไม่ได้ยินเสียง';
-    setStatus(msg);
-    stopListening();
-  };
-
-  recognition.onend = () => stopListening();
+  const res=await fetch(url,{method:'POST',headers:buildOpenAIHeaders(cfg),body:JSON.stringify(body)});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error?.message||data.message||`HTTP ${res.status}`);
+  const reply=data.choices?.[0]?.message?.content;
+  if(!reply) throw new Error('API ไม่ส่งข้อความตอบกลับ');
+  return String(reply).trim();
 }
 
-// ============================================================
-// ควบคุมการฟัง
-// ============================================================
-function startListening() {
-  if (!recognition) return;
-  recognition.lang = langSelect.value;
-  try {
-    recognition.start();
-  } catch (err) {
-    console.warn('Recognition already started:', err);
-  }
+async function callGemini(cfg,messages){
+  const url=PROVIDERS.gemini.url+encodeURIComponent(cfg.model)+':generateContent?key='+encodeURIComponent(cfg.key);
+  const contents=messages.filter(m=>m.role!=='system').map(m=>({
+    role:m.role==='assistant'?'model':'user',
+    parts:[{text:m.content}]
+  }));
+  const system=messages.find(m=>m.role==='system');
+  const body={contents};
+  if(system) body.systemInstruction={parts:[{text:system.content}]};
+  body.generationConfig={temperature:Number(temperatureInput.value)||.7,maxOutputTokens:500};
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error?.message||`HTTP ${res.status}`);
+  const reply=data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('').trim();
+  if(!reply) throw new Error('Gemini ไม่ส่งข้อความตอบกลับ');
+  return reply;
 }
 
-function stopListening() {
-  isListening = false;
-  core.classList.remove('listening');
-  waveform.classList.remove('active');
-  listenBtn.classList.remove('active');
-  if (statusEl.textContent.startsWith('🎤')) {
-    setStatus('SYSTEM READY');
-  }
+async function callProvider(cfg,messages){
+  return cfg.type==='gemini'?callGemini(cfg,messages):callOpenAICompatible(cfg,messages);
 }
 
-function setStatus(text) {
-  statusEl.textContent = text;
-}
-
-// ============================================================
-// แสดงข้อความใน transcript
-// ============================================================
-function addMessage(role, text) {
-  const div = document.createElement('div');
-  div.className = `msg ${role}`;
-  div.innerHTML = `<span class="label">${role === 'user' ? 'YOU:' : 'JARVIS:'}</span>${escapeHtml(text)}`;
-  transcript.appendChild(div);
-  transcript.scrollTop = transcript.scrollHeight;
-}
-
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
-}
-
-// ============================================================
-// 🔧 แก้ไข: เรียก API พร้อมระบบ Fallback Model
-// ============================================================
-async function handleUserInput(text) {
-  if (!text || !text.trim()) return;
-  addMessage('user', text);
-
-  const apiKey = apiKeyInput.value.trim();
-  if (!apiKey) {
-    speak('กรุณาใส่ API Key ก่อนครับ');
-    addMessage('ai', '⚠ กรุณาใส่ API Key ในช่องตั้งค่า (⚙️ มุมขวาบน)');
-    settingsPanel.hidden = false;
-    return;
-  }
-
+async function testConnection(){
   let cfg;
-  try {
-    cfg = getApiConfig(apiKey);
-  } catch (err) {
-    addMessage('ai', `❌ ${err.message}`);
-    settingsPanel.hidden = false;
-    return;
+  try{cfg=getApiConfig()}catch(e){addMessage('ai','⚠ '+e.message);settingsPanel.hidden=false;return}
+  setStatus('⚙ TESTING API...');
+  testApiBtn.disabled=true;
+  const t=performance.now();
+  try{
+    const reply=await callProvider(cfg,[...conversationHistory,{role:'user',content:'ตอบคำว่า TEST สำเร็จ สั้น ๆ'}]);
+    currentLatency=Math.round(performance.now()-t);
+    latencyEl.textContent=currentLatency+' ms';
+    addMessage('ai','✓ API ONLINE: '+reply);
+    setStatus('API ONLINE');
+  }catch(e){
+    addMessage('ai','❌ API TEST: '+friendlyError(e));
+    setStatus('API ERROR');
+  }finally{
+    testApiBtn.disabled=false;
   }
+}
+testApiBtn.addEventListener('click',testConnection);
 
-  // อัปเดต provider badge
-  providerBadge.textContent = `● ${cfg.name}`;
-  providerBadge.className = `provider-badge ${cfg.name.toLowerCase()}`;
+function friendlyError(err){
+  const s=String(err?.message||err).toLowerCase();
+  if(s.includes('quota')||s.includes('billing')||s.includes('credit')) return 'เครดิต/โควตา API ไม่เพียงพอ';
+  if(s.includes('401')||s.includes('403')||s.includes('api key')||s.includes('invalid')) return 'API Key ไม่ถูกต้องหรือไม่มีสิทธิ์';
+  if(s.includes('cors')) return 'ผู้ให้บริการบล็อกการเรียกจาก browser (CORS) ต้องใช้ backend/proxy';
+  if(s.includes('429')) return 'คำขอมากเกินไป กรุณารอสักครู่';
+  return err?.message||'ไม่ทราบสาเหตุ';
+}
 
-  setStatus('⚙ กำลังประมวลผล...');
-  typing.hidden = false;
-  stopBtn.hidden = true;
+/* ============================================================
+   SPEECH RECOGNITION
+   ============================================================ */
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SpeechRecognition){
+  setStatus('⚠ เบราว์เซอร์ไม่รองรับ กรุณาใช้ Chrome/Edge');listenBtn.disabled=true;
+}else{
+  recognition=new SpeechRecognition();
+  recognition.continuous=false;recognition.interimResults=true;recognition.lang=langSelect.value;
+  recognition.onstart=()=>{
+    isListening=true;core.classList.add('listening');core.classList.remove('speaking','error','processing');
+    waveform.classList.add('active');listenBtn.classList.add('active');systemState.textContent='LISTENING';matterState.textContent='RESPONDING';setStatus('🎤 กำลังฟัง...');
+  };
+  recognition.onresult=e=>{
+    const t=Array.from(e.results).map(r=>r[0].transcript).join('');
+    setStatus(`🎤 "${t}"`);
+    if(e.results[e.results.length-1].isFinal) handleUserInput(t);
+  };
+  recognition.onerror=e=>{
+    let msg=`⚠ ${e.error}`;if(e.error==='not-allowed')msg='⚠ กรุณาอนุญาตไมโครโฟน';if(e.error==='no-speech')msg='⚠ ไม่ได้ยินเสียง';
+    setStatus(msg);stopListening();
+  };
+  recognition.onend=()=>stopListening();
+}
+function startListening(){
+  if(!recognition)return;
+  recognition.lang=langSelect.value;
+  try{recognition.start()}catch(e){console.warn('Recognition already started')}
+}
+function stopListening(){
+  isListening=false;core.classList.remove('listening');waveform.classList.remove('active');listenBtn.classList.remove('active');
+  if(statusEl.textContent.startsWith('🎤'))setStatus('SYSTEM READY');
+  if(!processing)systemState.textContent='ONLINE';
+}
+function setStatus(t){statusEl.textContent=t}
 
-  conversationHistory.push({ role: 'user', content: text });
+function addMessage(role,text){
+  const div=document.createElement('div');div.className='msg '+role;
+  div.innerHTML=`<span class="label">${role==='user'?'YOU:':'JARVIS:'}</span>${escapeHtml(text)}`;
+  transcript.appendChild(div);transcript.scrollTop=transcript.scrollHeight;
+}
+function escapeHtml(str){return String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
-  // 🔧 ลองโมเดลทีละตัวจนกว่าจะสำเร็จ
-  let lastError = null;
-  let reply = null;
-
-  for (const model of cfg.models) {
-    try {
-      console.log(`[JARVIS] Trying model: ${model}`);
-      const res = await fetch(cfg.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: conversationHistory,
-          temperature: 0.7,
-          max_tokens: 300
-        })
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        lastError = new Error(err.error?.message || `HTTP ${res.status}`);
-        console.warn(`[JARVIS] Model ${model} failed:`, lastError.message);
-
-        // ถ้าเป็นเรื่องเครดิต/สิทธิ์ → หยุดลองเลย
-        const msg = lastError.message.toLowerCase();
-        if (msg.includes('credit') || msg.includes('quota') || msg.includes('billing')) {
-          throw lastError;
-        }
-        continue; // ลองโมเดลถัดไป
-      }
-
-      const data = await res.json();
-      reply = data.choices[0].message.content.trim();
-      console.log(`[JARVIS] ✅ Success with model: ${model}`);
-      break; // สำเร็จ → ออกจาก loop
-
-    } catch (err) {
-      lastError = err;
-      // ถ้าเป็น error เรื่องเครดิต → ไม่ต้องลองต่อ
-      const msg = (err.message || '').toLowerCase();
-      if (msg.includes('credit') || msg.includes('quota') || msg.includes('billing')) {
-        break;
-      }
-    }
+async function handleUserInput(text){
+  if(!text||!text.trim()||processing)return;
+  addMessage('user',text);
+  let cfg;
+  try{cfg=getApiConfig()}catch(e){speak('กรุณาใส่ API Key ก่อนครับ');addMessage('ai','⚠ '+e.message);settingsPanel.hidden=false;return}
+  processing=true;core.classList.add('processing');core.classList.remove('error');typing.hidden=false;stopBtn.hidden=true;
+  systemState.textContent='PROCESSING';matterState.textContent='FLOWING';setStatus('⚙ กำลังประมวลผล...');
+  conversationHistory.push({role:'user',content:text});
+  const t=performance.now();let reply=null,lastError=null;
+  try{
+    reply=await callProvider(cfg,conversationHistory);
+  }catch(e){
+    lastError=e;
   }
-
-  typing.hidden = true;
-
-  if (reply) {
-    conversationHistory.push({ role: 'assistant', content: reply });
-    addMessage('ai', reply);
-    speak(reply);
-  } else {
-    // 🔧 แสดง error ที่อ่านเข้าใจง่าย
-    let friendlyMsg = lastError?.message || 'ไม่ทราบสาเหตุ';
-    const lower = friendlyMsg.toLowerCase();
-
-    if (lower.includes('credit') || lower.includes('billing') || lower.includes('quota')) {
-      friendlyMsg = '💳 เครดิต API หมดแล้ว กรุณาเติมเงินที่ platform.openai.com/settings/organization/billing';
-    } else if (lower.includes('does not exist') || lower.includes('not have access')) {
-      friendlyMsg = '🚫 ไม่พบโมเดลที่ระบุ หรือบัญชีของคุณไม่มีสิทธิ์เข้าถึง กรุณาตรวจสอบ API Key';
-    } else if (lower.includes('invalid') || lower.includes('incorrect')) {
-      friendlyMsg = '🔑 API Key ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง';
-    }
-
-    addMessage('ai', `❌ ${friendlyMsg}`);
-    setStatus('SYSTEM ERROR');
-    core.classList.add('error');
-    setTimeout(() => {
-      core.classList.remove('error');
-      setStatus('SYSTEM READY');
-    }, 2500);
+  currentLatency=Math.round(performance.now()-t);latencyEl.textContent=currentLatency+' ms';
+  typing.hidden=true;processing=false;core.classList.remove('processing');
+  if(reply){
+    conversationHistory.push({role:'assistant',content:reply});addMessage('ai',reply);speak(reply);
+  }else{
+    const msg=friendlyError(lastError);
+    addMessage('ai','❌ '+msg);setStatus('SYSTEM ERROR');systemState.textContent='ERROR';matterState.textContent='UNSTABLE';core.classList.add('error');
+    setTimeout(()=>{core.classList.remove('error');systemState.textContent='ONLINE';matterState.textContent='STABLE';setStatus('SYSTEM READY')},2500);
   }
 }
 
-// ============================================================
-// TEXT-TO-SPEECH
-// ============================================================
-function speak(text) {
-  if (!('speechSynthesis' in window)) return;
-
+function speak(text){
+  if(!('speechSynthesis'in window))return;
   speechSynthesis.cancel();
-  const clean = String(text)
-    .replace(/[*_`#>]/g, '')
-    .replace(/[\u{1F300}-\u{1FAFF}]/gu, '');
-
-  const utter = new SpeechSynthesisUtterance(clean);
-  utter.lang = langSelect.value;
-  utter.rate = 1.05;
-  utter.pitch = 0.95;
-  utter.volume = 1;
-
-  const voices = speechSynthesis.getVoices();
-  const langPrefix = langSelect.value.split('-')[0];
-  const preferred =
-    voices.find(v => v.lang.startsWith(langPrefix) && /male|google|premium/i.test(v.name)) ||
-    voices.find(v => v.lang.startsWith(langPrefix));
-  if (preferred) utter.voice = preferred;
-
-  utter.onstart = () => {
-    core.classList.add('speaking');
-    core.classList.remove('listening');
-    waveform.classList.add('active');
-    setStatus('🔊 กำลังตอบ...');
-    stopBtn.hidden = false;
-  };
-  utter.onend = () => {
-    core.classList.remove('speaking');
-    waveform.classList.remove('active');
-    setStatus('SYSTEM READY');
-    stopBtn.hidden = true;
-  };
-  utter.onerror = () => {
-    core.classList.remove('speaking');
-    waveform.classList.remove('active');
-    stopBtn.hidden = true;
-  };
-
+  const clean=String(text).replace(/[*_`#>]/g,'').replace(/[\u{1F300}-\u{1FAFF}]/gu,'');
+  const utter=new SpeechSynthesisUtterance(clean);utter.lang=langSelect.value;utter.rate=1.05;utter.pitch=.95;utter.volume=1;
+  const voices=speechSynthesis.getVoices(),prefix=langSelect.value.split('-')[0];
+  const preferred=voices.find(v=>v.lang.startsWith(prefix)&&/male|google|premium/i.test(v.name))||voices.find(v=>v.lang.startsWith(prefix));
+  if(preferred)utter.voice=preferred;
+  utter.onstart=()=>{core.classList.add('speaking');core.classList.remove('listening','processing');waveform.classList.add('active');systemState.textContent='SPEAKING';matterState.textContent='REACTIVE';setStatus('🔊 กำลังตอบ...');stopBtn.hidden=false};
+  utter.onend=()=>{core.classList.remove('speaking');waveform.classList.remove('active');systemState.textContent='ONLINE';matterState.textContent='STABLE';setStatus('SYSTEM READY');stopBtn.hidden=true};
+  utter.onerror=()=>{core.classList.remove('speaking');waveform.classList.remove('active');stopBtn.hidden=true};
   speechSynthesis.speak(utter);
 }
+if('speechSynthesis'in window)speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices();
 
-// โหลด voices (Chrome โหลดแบบ async)
-if ('speechSynthesis' in window) {
-  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+listenBtn.addEventListener('click',()=>{
+  if(!recognition){alert('เบราว์เซอร์ไม่รองรับ Web Speech API\nกรุณาใช้ Chrome หรือ Edge');return}
+  isListening?recognition.stop():startListening();
+});
+stopBtn.addEventListener('click',()=>{speechSynthesis.cancel();stopBtn.hidden=true;core.classList.remove('speaking');waveform.classList.remove('active');systemState.textContent='ONLINE';matterState.textContent='STABLE';setStatus('SYSTEM READY')});
+clearBtn.addEventListener('click',()=>{transcript.innerHTML='';conversationHistory=conversationHistory.slice(0,1);setStatus('SYSTEM READY')});
+sendBtn.addEventListener('click',()=>{const t=textInput.value.trim();if(t){handleUserInput(t);textInput.value=''}});
+textInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sendBtn.click()}});
+langSelect.addEventListener('change',()=>{localStorage.setItem('jarvis_lang',langSelect.value);if(recognition)recognition.lang=langSelect.value});
+
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+  if(e.code==='Space'){e.preventDefault();listenBtn.click()}
+  if(e.key==='Escape'){speechSynthesis.cancel();stopBtn.hidden=true;core.classList.remove('speaking');waveform.classList.remove('active');setStatus('SYSTEM READY')}
+  if(e.key==='c'||e.key==='C')clearBtn.click();
+});
+
+/* ============================================================
+   ENERGY MATTER FIELD
+   มวลสารอนุภาค + เส้นพลังงาน + orbital flow
+   ============================================================ */
+const canvas=document.getElementById('energyCanvas'),ctx=canvas.getContext('2d');
+let W=0,H=0,dpr=1,particles=[],mouse={x:-9999,y:-9999,active:false},energyLevel=.74;
+const PARTICLES=Math.min(150,Math.max(85,Math.floor(window.innerWidth/10)));
+
+function resizeCanvas(){
+  dpr=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+  particles.length=0;
+  for(let i=0;i<PARTICLES;i++)particles.push(makeParticle(i));
+  particleCount.textContent=particles.length;
 }
+function makeParticle(i){
+  const a=Math.random()*Math.PI*2;
+  const radius=90+Math.random()*Math.min(W,H)*.42;
+  return{
+    angle:a,radius,x:W/2+Math.cos(a)*radius,y:H/2+Math.sin(a)*radius*.68,
+    size:.7+Math.random()*2.1,alpha:.15+Math.random()*.7,
+    speed:(.0008+Math.random()*.0022)*(Math.random()>.5?1:-1),
+    drift:.3+Math.random()*1.4,phase:Math.random()*Math.PI*2,
+    orbit:.7+Math.random()*.7
+  };
+}
+function drawEnergyMatter(time){
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2,cy=H/2;
+  const activity=processing?1.45:(isListening?1.25:(speechSynthesis.speaking?1.35:1));
+  const attract=processing?1.8:1;
+  energyLevel=.65+.12*Math.sin(time*.0013)+(speechSynthesis.speaking?.2:0);
+  energyPct.textContent=Math.round(Math.max(0,Math.min(100,energyLevel*100)))+'%';
+  fieldPct.textContent=Math.round(88+10*Math.sin(time*.0007))+'%';
 
-// ============================================================
-// EVENT LISTENERS
-// ============================================================
-listenBtn.addEventListener('click', () => {
-  if (!recognition) {
-    alert('เบราว์เซอร์ไม่รองรับ Web Speech API\nกรุณาใช้ Chrome หรือ Edge');
-    return;
+  for(let i=0;i<particles.length;i++){
+    const p=particles[i];
+    p.angle+=p.speed*activity;
+    const wobble=Math.sin(time*.001*p.drift+p.phase)*18;
+    let r=p.radius+wobble;
+    if(processing)r*=.88+Math.sin(time*.002+p.phase)*.05;
+    p.x=cx+Math.cos(p.angle)*r;
+    p.y=cy+Math.sin(p.angle)*r*.62;
+
+    if(mouse.active){
+      const dx=mouse.x-p.x,dy=mouse.y-p.y,d=Math.hypot(dx,dy);
+      if(d<180){p.x+=dx*.002;p.y+=dy*.002}
+    }
+
+    const pulse=.55+.45*Math.sin(time*.003+p.phase);
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.size*(.8+pulse*.5),0,Math.PI*2);
+    ctx.fillStyle=`rgba(0,212,255,${p.alpha*(.55+pulse*.45)})`;
+    ctx.shadowBlur=10;ctx.shadowColor='#00d4ff';ctx.fill();
+
+    if(i%2===0){
+      const tail=12+18*pulse;
+      ctx.beginPath();ctx.moveTo(p.x,p.y);
+      ctx.lineTo(p.x-Math.cos(p.angle)*tail,p.y-Math.sin(p.angle)*tail*.62);
+      ctx.strokeStyle=`rgba(0,212,255,${p.alpha*.18})`;ctx.lineWidth=.6;ctx.stroke();
+    }
   }
-  if (isListening) {
-    recognition.stop();
-  } else {
-    startListening();
+
+  /* dynamic connections */
+  for(let i=0;i<particles.length;i+=2){
+    for(let j=i+1;j<Math.min(i+9,particles.length);j++){
+      const a=particles[i],b=particles[j],dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy);
+      if(d<115){
+        ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+        ctx.strokeStyle=`rgba(0,212,255,${(1-d/115)*.12})`;ctx.lineWidth=.6;ctx.stroke();
+      }
+    }
   }
-});
 
-stopBtn.addEventListener('click', () => {
-  speechSynthesis.cancel();
-  stopBtn.hidden = true;
-  core.classList.remove('speaking');
-  waveform.classList.remove('active');
-  setStatus('SYSTEM READY');
-});
-
-clearBtn.addEventListener('click', () => {
-  transcript.innerHTML = '';
-  conversationHistory = conversationHistory.slice(0, 1);
-  setStatus('SYSTEM READY');
-});
-
-sendBtn.addEventListener('click', () => {
-  const t = textInput.value.trim();
-  if (t) {
-    handleUserInput(t);
-    textInput.value = '';
+  /* energy tendrils flowing around the core */
+  for(let k=0;k<7;k++){
+    const base=time*.0007*(k%2?-.8:.65)+k;
+    ctx.beginPath();
+    for(let s=0;s<=90;s++){
+      const a=base+s*.075;
+      const r=150+s*1.15+Math.sin(time*.002+s*.15+k)*10;
+      const x=cx+Math.cos(a)*r;
+      const y=cy+Math.sin(a)*r*.52;
+      s===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle=`rgba(${k%2?0:80},${k%2?255:212},${k%2?170:255},${.07+energyLevel*.06})`;
+    ctx.lineWidth=1.1;ctx.shadowBlur=12;ctx.shadowColor=k%2?'#00ffaa':'#00d4ff';ctx.stroke();
   }
-});
+  ctx.shadowBlur=0;
+  requestAnimationFrame(drawEnergyMatter);
+}
+canvas.addEventListener('pointermove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;mouse.active=true});
+canvas.addEventListener('pointerleave',()=>mouse.active=false);
+window.addEventListener('resize',resizeCanvas);
 
-textInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    sendBtn.click();
-  }
-});
+/* ============================================================
+   INIT
+   ============================================================ */
+loadProviderConfig();
+resizeCanvas();
+requestAnimationFrame(drawEnergyMatter);
+console.log('%c🤖 JARVIS Multi-API System Online','color:#00d4ff;font-size:16px;font-weight:bold');
+console.log('Providers: OpenAI / Groq / Gemini / OpenRouter / Custom');
+console.log('Energy Matter Field: ONLINE');
 
-document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-
-  if (e.code === 'Space') {
-    e.preventDefault();
-    listenBtn.click();
-  }
-  if (e.key === 'Escape') {
-    speechSynthesis.cancel();
-    stopBtn.hidden = true;
-    core.classList.remove('speaking');
-    waveform.classList.remove('active');
-    setStatus('SYSTEM READY');
-  }
-  if (e.key === 'c' || e.key === 'C') {
-    clearBtn.click();
-  }
-});
-
-// ============================================================
-// INIT
-// ============================================================
-console.log('%c🤖 JARVIS System Online', 'color:#00d4ff;font-size:16px;font-weight:bold');
-console.log('💡 ใส่ API Key ที่ปุ่ม ⚙️ มุมขวาบน');
-console.log('🎤 กด Spacebar หรือปุ่ม ACTIVATE เพื่อพูด');
-console.log('⌨️  หรือพิมพ์คำถามในช่องด้านล่าง');
-
-if (!apiKeyInput.value) {
-  settingsPanel.hidden = false;
-  providerBadge.textContent = '⚙ ใส่ API Key';
-  providerBadge.className = 'provider-badge';
+if(!apiKeyInput.value){
+  settingsPanel.hidden=false;
+  providerBadge.textContent='⚙ ใส่ API Key';
+  providerBadge.className='provider-badge';
 }
 </script>
-
 </body>
 </html>
