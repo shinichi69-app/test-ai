@@ -3,191 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>J.A.R.V.I.S - Groq Qwen Neural Link</title>
+<title>J.A.R.V.I.S - Groq Neural Link</title>
 <style>
+  /* ... (CSS เดิมของคุณใช้ได้ครับ ผมคงไว้เพื่อให้หน้าตาเหมือนเดิม) ... */
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&display=swap');
 
-  :root {
-    --primary: #00d4ff;
-    --secondary: #ff6a00;
-    --bg-dark: #000a14;
-    --glass: rgba(0, 20, 40, 0.7);
-  }
-
+  :root { --primary: #00d4ff; --secondary: #ff6a00; --bg-dark: #000a14; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg-dark);
-    color: var(--primary);
-    font-family: 'Rajdhani', sans-serif;
-    overflow: hidden;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-  }
-
-  /* === BACKGROUND EFFECTS === */
-  .bg-grid {
-    position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    animation: gridMove 20s linear infinite;
-    z-index: 0;
-  }
-
-  .scanlines, .vignette {
-    position: fixed; inset: 0; pointer-events: none; z-index: 1000;
-  }
-  
-  .scanlines {
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,212,255,0.015) 2px, rgba(0,212,255,0.015) 4px);
-  }
-
-  .vignette {
-    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.9) 100%);
-  }
-
-  /* === MAIN CONTAINER === */
-  .container {
-    position: relative; z-index: 10;
-    width: 100%; max-width: 1000px; height: 90vh;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-  }
-
-  /* === HUD ELEMENTS === */
-  .hud-corner {
-    position: absolute; width: 60px; height: 60px;
-    border: 2px solid rgba(0,212,255,0.4);
-    transition: all 0.3s;
-  }
+  body { background: var(--bg-dark); color: var(--primary); font-family: 'Rajdhani', sans-serif; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; }
+  .bg-grid { position: fixed; inset: 0; background-image: linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px); background-size: 40px 40px; animation: gridMove 20s linear infinite; z-index: 0; }
+  .scanlines, .vignette { position: fixed; inset: 0; pointer-events: none; z-index: 1000; }
+  .scanlines { background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,212,255,0.015) 2px, rgba(0,212,255,0.015) 4px); }
+  .vignette { background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.9) 100%); }
+  .container { position: relative; z-index: 10; width: 100%; max-width: 1000px; height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .hud-corner { position: absolute; width: 60px; height: 60px; border: 2px solid rgba(0,212,255,0.4); transition: all 0.3s; }
   .hud-corner.tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
   .hud-corner.tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
   .hud-corner.bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
   .hud-corner.br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
-
-  .hud-top {
-    position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
-    text-align: center; z-index: 20;
-  }
-
-  .hud-top h1 {
-    font-family: 'Orbitron', sans-serif; font-size: 16px; letter-spacing: 8px;
-    color: rgba(0,212,255,0.8); text-shadow: 0 0 10px rgba(0,212,255,0.5);
-    animation: flicker 3s infinite;
-  }
-
-  /* === ARC REACTOR CORE === */
-  .ring-container {
-    position: relative; width: 400px; height: 400px;
-    margin-bottom: 20px;
-  }
-
-  .ring {
-    position: absolute; border-radius: 50%; border: 1px solid transparent;
-    top: 50%; left: 50%; transform: translate(-50%, -50%);
-  }
-
+  .hud-top { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); text-align: center; z-index: 20; }
+  .hud-top h1 { font-family: 'Orbitron', sans-serif; font-size: 16px; letter-spacing: 8px; color: rgba(0,212,255,0.8); text-shadow: 0 0 10px rgba(0,212,255,0.5); animation: flicker 3s infinite; }
+  .ring-container { position: relative; width: 400px; height: 400px; margin-bottom: 20px; }
+  .ring { position: absolute; border-radius: 50%; border: 1px solid transparent; top: 50%; left: 50%; transform: translate(-50%, -50%); }
   .ring-1 { width: 100%; height: 100%; border-color: rgba(0,212,255,0.1); border-top-color: var(--primary); animation: rotateCW 10s linear infinite; }
   .ring-2 { width: 80%; height: 80%; border-color: rgba(0,212,255,0.1); border-bottom-color: var(--primary); animation: rotateCCW 15s linear infinite; }
   .ring-3 { width: 60%; height: 60%; border: 2px dashed rgba(0,212,255,0.2); animation: rotateCW 20s linear infinite; }
-
-  .arc-reactor {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 150px; height: 150px; border-radius: 50%;
-    background: radial-gradient(circle, #fff 0%, #a0e8ff 20%, #00d4ff 50%, transparent 70%);
-    box-shadow: 0 0 40px var(--primary), 0 0 80px rgba(0,212,255,0.4);
-    animation: pulse 2s ease-in-out infinite;
-    display: flex; align-items: center; justify-content: center;
-  }
-
-  .status-display {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    text-align: center; z-index: 30; pointer-events: none; width: 100%;
-  }
-
+  .arc-reactor { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 150px; height: 150px; border-radius: 50%; background: radial-gradient(circle, #fff 0%, #a0e8ff 20%, #00d4ff 50%, transparent 70%); box-shadow: 0 0 40px var(--primary), 0 0 80px rgba(0,212,255,0.4); animation: pulse 2s ease-in-out infinite; display: flex; align-items: center; justify-content: center; }
+  .status-display { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 30; pointer-events: none; width: 100%; }
   .status-display .system-text { font-family: 'Orbitron'; font-size: 10px; letter-spacing: 4px; color: #fff; margin-bottom: 5px; }
   .status-display .percent { font-family: 'Orbitron'; font-size: 32px; font-weight: 900; color: #fff; text-shadow: 0 0 20px var(--primary); }
-
-  /* === CHAT LOG CONSOLE === */
-  .chat-console {
-    width: 90%; max-width: 700px; height: 180px;
-    background: rgba(0, 10, 20, 0.8);
-    border: 1px solid rgba(0,212,255,0.3);
-    border-radius: 4px;
-    padding: 15px;
-    overflow-y: auto;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 13px;
-    margin-bottom: 20px;
-    backdrop-filter: blur(5px);
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
-    display: flex; flex-direction: column; gap: 8px;
-  }
-
+  .chat-console { width: 90%; max-width: 700px; height: 180px; background: rgba(0, 10, 20, 0.8); border: 1px solid rgba(0,212,255,0.3); border-radius: 4px; padding: 15px; overflow-y: auto; font-family: 'Share Tech Mono', monospace; font-size: 13px; margin-bottom: 20px; backdrop-filter: blur(5px); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 8px; }
   .chat-console::-webkit-scrollbar { width: 5px; }
   .chat-console::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 3px; }
-
   .log-entry { opacity: 0; animation: fadeIn 0.3s forwards; line-height: 1.4; }
   .log-user { color: rgba(255,255,255,0.7); border-left: 2px solid #fff; padding-left: 8px; }
   .log-ai { color: var(--primary); border-left: 2px solid var(--primary); padding-left: 8px; text-shadow: 0 0 5px rgba(0,212,255,0.3); }
   .log-sys { color: var(--secondary); font-style: italic; font-size: 11px; }
-
-  /* === CONTROLS === */
-  .control-panel {
-    display: flex; flex-direction: column; align-items: center; gap: 15px;
-    width: 90%; max-width: 600px; z-index: 50;
-  }
-
-  .input-group {
-    display: flex; width: 100%; gap: 10px;
-  }
-
-  .api-input-wrapper {
-    flex: 1; position: relative;
-  }
-
-  input[type="password"], input[type="text"] {
-    width: 100%; background: rgba(0,20,40,0.6);
-    border: 1px solid rgba(0,212,255,0.3);
-    color: var(--primary); font-family: 'Share Tech Mono'; font-size: 14px;
-    padding: 12px 15px; outline: none;
-    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-    transition: all 0.3s;
-  }
-
+  .control-panel { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 90%; max-width: 600px; z-index: 50; }
+  .input-group { display: flex; width: 100%; gap: 10px; }
+  input[type="password"], input[type="text"] { width: 100%; background: rgba(0,20,40,0.6); border: 1px solid rgba(0,212,255,0.3); color: var(--primary); font-family: 'Share Tech Mono'; font-size: 14px; padding: 12px 15px; outline: none; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); transition: all 0.3s; }
   input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0,212,255,0.2); }
-
-  .btn {
-    font-family: 'Orbitron'; font-size: 12px; padding: 0 20px;
-    border: 1px solid var(--primary); background: rgba(0,212,255,0.1);
-    color: var(--primary); cursor: pointer; text-transform: uppercase;
-    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-    transition: all 0.2s; white-space: nowrap;
-  }
-
+  .btn { font-family: 'Orbitron'; font-size: 12px; padding: 0 20px; border: 1px solid var(--primary); background: rgba(0,212,255,0.1); color: var(--primary); cursor: pointer; text-transform: uppercase; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); transition: all 0.2s; white-space: nowrap; }
   .btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 20px rgba(0,212,255,0.4); }
   .btn.mic { width: 50px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
   .btn.mic.active { background: var(--secondary); border-color: var(--secondary); color: #fff; animation: pulseBtn 1s infinite; }
-
-  /* === ANIMATIONS === */
   @keyframes rotateCW { to { transform: translate(-50%, -50%) rotate(360deg); } }
   @keyframes rotateCCW { to { transform: translate(-50%, -50%) rotate(-360deg); } }
   @keyframes pulse { 0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); } }
   @keyframes flicker { 0%, 100% { opacity: 1; } 92% { opacity: 1; } 93% { opacity: 0.3; } 94% { opacity: 1; } 96% { opacity: 0.5; } 97% { opacity: 1; } }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes pulseBtn { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,106,0,0.4); } 50% { box-shadow: 0 0 0 10px rgba(255,106,0,0); } }
-
-  /* Responsive */
-  @media (max-width: 768px) {
-    .ring-container { width: 280px; height: 280px; }
-    .chat-console { height: 120px; font-size: 11px; }
-    .hud-top h1 { font-size: 12px; letter-spacing: 4px; }
-  }
+  @media (max-width: 768px) { .ring-container { width: 280px; height: 280px; } .chat-console { height: 120px; font-size: 11px; } .hud-top h1 { font-size: 12px; letter-spacing: 4px; } }
 </style>
 </head>
 <body>
@@ -201,7 +67,7 @@
     <div class="hud-corner bl"></div><div class="hud-corner br"></div>
 
     <div class="hud-top">
-      <h1>J.A.R.V.I.S // QWEN NEURAL LINK</h1>
+      <h1>J.A.R.V.I.S // NEURAL LINK</h1>
     </div>
 
     <div class="ring-container">
@@ -226,7 +92,7 @@
       
       <!-- API KEY SECTION -->
       <div class="input-group" style="opacity: 0.8; transform: scale(0.95);">
-        <div class="api-input-wrapper">
+        <div class="api-input-wrapper" style="flex:1;">
           <input type="password" id="apiKeyInput" placeholder="GROQ API KEY (Auto-saved)">
         </div>
         <button class="btn" onclick="saveKey()">SAVE</button>
@@ -245,8 +111,14 @@
 
 <script>
   // === CONFIGURATION ===
-  const MODELS = ['qwen-2.5-32b', 'qwen3-32b', 'llama-3.3-70b-versatile']; // Fallback list
-  let currentModel = MODELS[0];
+  // รายชื่อโมเดลที่จะลองใช้เรียงตามลำดับ (ถ้าตัวแรกพัง จะลองตัวถัดไปอัตโนมัติ)
+  const MODELS = [
+    'qwen-2.5-32b',           // โมเดลหลักที่หวังว่าจะใช้ได้
+    'qwen-2.5-coder-32b',     // ตัวสำรองกลุ่ม Qwen
+    'llama-3.3-70b-versatile',// ตัวสำรองกลุ่ม Llama (เก่งมากและเสถียร)
+    'gemma2-9b-it'            // ตัวสุดท้าย
+  ];
+  
   let recognition;
   let isListening = false;
 
@@ -259,16 +131,13 @@
 
   // === INITIALIZATION ===
   window.addEventListener('DOMContentLoaded', () => {
-    // Load saved key
     const savedKey = localStorage.getItem('jarvis_groq_key');
     if (savedKey) apiKeyInput.value = savedKey;
 
-    // Enter key support
     userInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') sendCommand();
     });
 
-    // Random percent animation
     setInterval(() => {
       document.getElementById('corePercent').textContent = (97 + Math.random() * 2.9).toFixed(1) + '%';
     }, 2000);
@@ -289,13 +158,15 @@
     if (key) {
       localStorage.setItem('jarvis_groq_key', key);
       addLog('API Key encrypted and stored securely.', 'sys');
+    } else {
+      addLog('Error: Please enter a valid key first.', 'sys');
     }
   }
 
   function clearKey() {
     localStorage.removeItem('jarvis_groq_key');
     apiKeyInput.value = '';
-    addLog('API Key cleared.', 'sys');
+    addLog('API Key cleared from local storage.', 'sys');
   }
 
   async function sendCommand() {
@@ -304,7 +175,7 @@
 
     if (!text) return;
     if (!apiKey) {
-      addLog('ERROR: Missing Groq API Key', 'sys');
+      addLog('ERROR: Missing Groq API Key. Please Save it first.', 'sys');
       return;
     }
 
@@ -314,43 +185,66 @@
     sysStatus.textContent = 'PROCESSING...';
     sysStatus.style.color = '#ff6a00';
 
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: currentModel,
-          messages: [
-            { 
-              role: "system", 
-              content: "You are J.A.R.V.I.S, Tony Stark's AI assistant. Respond concisely, professionally, and intelligently. Call the user 'Sir' or 'ท่าน'. If asked in Thai, respond in Thai." 
-            },
-            { role: "user", content: text }
-          ],
-          max_tokens: 300,
-          temperature: 0.7
-        })
-      });
+    let success = false;
+    let lastError = '';
 
-      if (!response.ok) throw new Error(`API Error: ${response.status}`);
-      
-      const data = await response.json();
-      const reply = data.choices[0].message.content;
+    // Loop through models to find one that works
+    for (const model of MODELS) {
+      try {
+        addLog(`Connecting via ${model}...`, 'sys');
+        
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { 
+                role: "system", 
+                content: "You are J.A.R.V.I.S, Tony Stark's AI assistant. Respond concisely, professionally, and intelligently. Call the user 'Sir' or 'ท่าน'. If asked in Thai, respond in Thai." 
+              },
+              { role: "user", content: text }
+            ],
+            max_tokens: 300,
+            temperature: 0.7
+          })
+        });
 
-      addLog(reply, 'ai');
-      speak(reply);
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error?.message || `HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const reply = data.choices[0].message.content;
 
-    } catch (error) {
-      console.error(error);
-      addLog(`Connection Failed: ${error.message}`, 'sys');
-      // Simple fallback model rotation logic could go here
-    } finally {
-      sysStatus.textContent = 'SYSTEM ONLINE';
-      sysStatus.style.color = '#fff';
+        addLog(reply, 'ai');
+        speak(reply);
+        success = true;
+        break; // Exit loop if successful
+
+      } catch (error) {
+        console.warn(`Model ${model} failed:`, error.message);
+        lastError = error.message;
+        // ถ้า error เป็นเรื่อง model not found ให้ลองตัวต่อไปทันที
+        if (error.message.includes('not found') || error.message.includes('does not exist')) {
+          continue; 
+        }
+        // ถ้าเป็น error อื่นๆ (เช่น Key ผิด, Quota เต็ม) ให้หยุดเลย
+        break;
+      }
     }
+
+    if (!success) {
+      addLog(`Connection Failed: ${lastError}`, 'sys');
+      addLog('Tip: Check your API Key or try a different model.', 'sys');
+    }
+
+    sysStatus.textContent = 'SYSTEM ONLINE';
+    sysStatus.style.color = '#fff';
   }
 
   // === VOICE RECOGNITION ===
@@ -366,7 +260,7 @@
     }
 
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'th-TH'; // Default to Thai, can be toggled
+    recognition.lang = 'th-TH'; 
     recognition.continuous = false;
     recognition.interimResults = false;
 
@@ -388,7 +282,6 @@
     };
 
     recognition.onend = () => stopListening();
-
     recognition.start();
   }
 
@@ -403,19 +296,16 @@
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Try to find a good voice
       const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(v => v.lang.includes('th')) || voices.find(v => v.lang.includes('en'));
-      if (preferredVoice) utterance.voice = preferredVoice;
-
+      // พยายามหาเสียงไทยก่อน ถ้าไม่มีใช้เสียงเริ่มต้น
+      const thaiVoice = voices.find(v => v.lang.includes('th'));
+      if (thaiVoice) utterance.voice = thaiVoice;
+      
       utterance.rate = 1.1;
       utterance.pitch = 0.9;
       window.speechSynthesis.speak(utterance);
     }
   }
-
-  // Preload voices
   window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
 </script>
 
