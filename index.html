@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>J.A.R.V.I.S - Groq Neural Link</title>
 <style>
-  /* CSS คงเดิมเพื่อรักษาหน้าตา JARVIS */
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&display=swap');
   :root { --primary: #00d4ff; --secondary: #ff6a00; --bg-dark: #000a14; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -81,15 +80,11 @@
       </div>
     </div>
 
-    <!-- CHAT LOG AREA -->
     <div class="chat-console" id="chatConsole">
       <div class="log-entry log-sys">[ SYSTEM ] J.A.R.V.I.S initialized. Waiting for input...</div>
     </div>
 
-    <!-- CONTROL PANEL -->
     <div class="control-panel">
-      
-      <!-- API KEY SECTION -->
       <div class="input-group" style="opacity: 0.8; transform: scale(0.95);">
         <div class="api-input-wrapper" style="flex:1;">
           <input type="password" id="apiKeyInput" placeholder="GROQ API KEY (Auto-saved)">
@@ -98,40 +93,31 @@
         <button class="btn" style="border-color: var(--secondary); color: var(--secondary);" onclick="clearKey()">CLR</button>
       </div>
 
-      <!-- MAIN INPUT SECTION -->
       <div class="input-group">
         <input type="text" id="userCommand" placeholder="สั่งการด้วยเสียง หรือ พิมพ์คำสั่ง..." autocomplete="off">
         <button class="btn mic" id="micBtn" onclick="toggleMic()">🎙️</button>
         <button class="btn" onclick="sendCommand()">EXECUTE</button>
       </div>
-
     </div>
   </div>
 
 <script>
-  // === UPDATED MODEL LIST (2026 ACTIVE MODELS) ===
-  // ตัด qwen-2.5-32b ออกแล้ว เพิ่มโมเดลที่ยังทำงานได้จริง
-  const MODELS = [
-    'qwen-qwq-32b',             // Qwen รุ่นใหม่ที่ Groq ยังรองรับ
-    'llama-3.3-70b-versatile',  // Llama 3.3 เสถียรที่สุดตอนนี้
-    'deepseek-r1-distill-llama-70b', // DeepSeek R1 Distill (เก่งมาก)
-    'gemma2-9b-it'              // Google Gemma 2 ตัวเล็กแต่เร็ว
-  ];
-  
+  let activeModels = []; // จะเก็บรายชื่อโมเดลที่ได้จาก API
   let recognition;
   let isListening = false;
 
-  // === DOM ELEMENTS ===
   const chatConsole = document.getElementById('chatConsole');
   const userInput = document.getElementById('userCommand');
   const apiKeyInput = document.getElementById('apiKeyInput');
   const sysStatus = document.getElementById('sysStatus');
   const micBtn = document.getElementById('micBtn');
 
-  // === INITIALIZATION ===
-  window.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('DOMContentLoaded', async () => {
     const savedKey = localStorage.getItem('jarvis_groq_key');
-    if (savedKey) apiKeyInput.value = savedKey;
+    if (savedKey) {
+      apiKeyInput.value = savedKey;
+      await fetchActiveModels(savedKey); // โหลดรายชื่อโมเดลทันทีที่เปิดเว็บ
+    }
 
     userInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') sendCommand();
@@ -142,7 +128,30 @@
     }, 2000);
   });
 
-  // === CORE FUNCTIONS ===
+  // ฟังก์ชันใหม่: ดึงรายชื่อโมเดลที่ยังใช้งานได้จริงจาก Groq
+  async function fetchActiveModels(key) {
+    try {
+      addLog('Scanning available models...', 'sys');
+      const res = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { 'Authorization': `Bearer ${key}` }
+      });
+      
+      if (!res.ok) throw new Error('Failed to fetch models');
+      
+      const data = await res.json();
+      // กรองเอาเฉพาะโมเดลที่ active=true และเรียงตามความนิยม/ความเร็ว
+      activeModels = data.data
+        .filter(m => m.active)
+        .sort((a, b) => b.id.localeCompare(a.id)) // เรียงชื่อเพื่อให้ได้โมเดลใหม่ๆ ก่อน
+        .map(m => m.id);
+        
+      addLog(`Found ${activeModels.length} active models. Ready.`, 'sys');
+    } catch (err) {
+      addLog(`Model scan failed: ${err.message}`, 'sys');
+      activeModels = []; // ถ้าสแกนไม่ได้ ให้ใช้ fallback แบบเดิมด้านล่าง
+    }
+  }
+
   function addLog(text, type = 'sys') {
     const div = document.createElement('div');
     div.className = `log-entry log-${type}`;
@@ -156,6 +165,7 @@
     const key = apiKeyInput.value.trim();
     if (key) {
       localStorage.setItem('jarvis_groq_key', key);
+      fetchActiveModels(key); // สแกนโมเดลใหม่ทันทีเมื่อกด Save
       addLog('API Key encrypted and stored securely.', 'sys');
     } else {
       addLog('Error: Please enter a valid key first.', 'sys');
@@ -165,6 +175,7 @@
   function clearKey() {
     localStorage.removeItem('jarvis_groq_key');
     apiKeyInput.value = '';
+    activeModels = [];
     addLog('API Key cleared from local storage.', 'sys');
   }
 
@@ -174,23 +185,31 @@
 
     if (!text) return;
     if (!apiKey) {
-      addLog('ERROR: Missing Groq API Key. Please Save it first.', 'sys');
+      addLog('ERROR: Missing Groq API Key.', 'sys');
       return;
     }
 
-    // UI Update
     userInput.value = '';
     addLog(text, 'user');
     sysStatus.textContent = 'PROCESSING...';
     sysStatus.style.color = '#ff6a00';
 
+    // ถ้ายังไม่มีรายชื่อโมเดล ให้ลองสแกนอีกครั้งก่อนส่ง
+    if (activeModels.length === 0) {
+      await fetchActiveModels(apiKey);
+    }
+
+    // ถ้าสแกนแล้วยังว่างเปล่า ใช้ fallback list เป็นแผนสำรองสุดท้าย
+    const modelsToTry = activeModels.length > 0 
+      ? activeModels 
+      : ['llama-3.3-70b-versatile', 'gemma2-9b-it', 'qwen-2.5-32b'];
+
     let success = false;
     let lastError = '';
 
-    // Loop through models to find one that works
-    for (const model of MODELS) {
+    for (const model of modelsToTry) {
       try {
-        addLog(`Attempting connection via ${model}...`, 'sys');
+        addLog(`Connecting via ${model}...`, 'sys');
         
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -223,45 +242,32 @@
         addLog(reply, 'ai');
         speak(reply);
         success = true;
-        break; // Exit loop if successful
+        break;
 
       } catch (error) {
-        console.warn(`Model ${model} failed:`, error.message);
         lastError = error.message;
-        
-        // เช็กว่าเป็น error ประเภท "โมเดลหมดอายุ" หรือไม่
-        if (error.message.includes('decommissioned') || 
-            error.message.includes('not found') || 
-            error.message.includes('does not exist')) {
-          addLog(`⚠ Model "${model}" is unavailable. Switching to next...`, 'sys');
-          continue; // ลองตัวถัดไปทันที
+        if (error.message.includes('decommissioned') || error.message.includes('not found')) {
+          continue;
         }
-        
-        // ถ้าเป็น error อื่นๆ (เช่น Key ผิด, Quota เต็ม) ให้หยุดเลย
         break;
       }
     }
 
     if (!success) {
-      addLog(` Connection Failed: ${lastError}`, 'sys');
-      addLog('💡 Tip: Your API Key might be invalid or quota exceeded.', 'sys');
+      addLog(`Connection Failed: ${lastError}`, 'sys');
+      addLog('💡 Try pressing SAVE again to re-scan models.', 'sys');
     }
 
     sysStatus.textContent = 'SYSTEM ONLINE';
     sysStatus.style.color = '#fff';
   }
 
-  // === VOICE RECOGNITION ===
   function toggleMic() {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
       addLog('Browser does not support Speech Recognition', 'sys');
       return;
     }
-
-    if (isListening) {
-      recognition.stop();
-      return;
-    }
+    if (isListening) { recognition.stop(); return; }
 
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'th-TH'; 
@@ -273,18 +279,11 @@
       micBtn.classList.add('active');
       sysStatus.textContent = 'LISTENING...';
     };
-
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      userInput.value = transcript;
+      userInput.value = event.results[0][0].transcript;
       sendCommand();
     };
-
-    recognition.onerror = (event) => {
-      addLog(`Voice Error: ${event.error}`, 'sys');
-      stopListening();
-    };
-
+    recognition.onerror = () => stopListening();
     recognition.onend = () => stopListening();
     recognition.start();
   }
@@ -295,7 +294,6 @@
     sysStatus.textContent = 'SYSTEM ONLINE';
   }
 
-  // === TEXT TO SPEECH ===
   function speak(text) {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -303,7 +301,6 @@
       const voices = window.speechSynthesis.getVoices();
       const thaiVoice = voices.find(v => v.lang.includes('th'));
       if (thaiVoice) utterance.voice = thaiVoice;
-      
       utterance.rate = 1.1;
       utterance.pitch = 0.9;
       window.speechSynthesis.speak(utterance);
