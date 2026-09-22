@@ -1,240 +1,89 @@
-// ====== ตัวแปรหลัก ======
-const core        = document.getElementById('core');
-const statusEl    = document.getElementById('status');
-const transcript  = document.getElementById('transcript');
-const listenBtn   = document.getElementById('listenBtn');
-const clearBtn    = document.getElementById('clearBtn');
-const waveform    = document.getElementById('waveform');
-const apiKeyInput = document.getElementById('apiKey');
-const langSelect  = document.getElementById('langSelect');
-
-let isListening = false;
-let recognition = null;
-let conversationHistory = [
-  {
-    role: 'system',
-    content: `คุณคือ JARVIS ผู้ช่วย AI อัจฉริยะ สไตล์ Iron Man 
-              ตอบสุภาพ กระชับ ตรงประเด็น เรียกผู้ใช้ว่า "ท่าน" 
-              ตอบเป็นภาษาเดียวกับที่ผู้ใช้ถาม`
-  }
-];
-
-// โหลด API key ที่เคยบันทึก
-apiKeyInput.value = localStorage.getItem('openai_key') || '';
-apiKeyInput.addEventListener('change', () => {
-  localStorage.setItem('openai_key', apiKeyInput.value.trim());
-});
-
-// ====== เลือก Provider อัตโนมัติจากรูปแบบ Key ======
-function getApiConfig(apiKey) {
-  if (apiKey.startsWith('gsk_')) {
-    return {
-      url: 'https://api.groq.com/openai/v1/chat/completions',
-      model: 'llama-3.3-70b-versatile',
-      name: 'Groq'
-    };
-  }
-  if (apiKey.startsWith('sk-')) {
-    return {
-      url: 'https://api.openai.com/v1/chat/completions',
-      model: 'gpt-4o-mini',
-      name: 'OpenAI'
-    };
-  }
-  throw new Error('API Key ไม่ถูกต้อง (ต้องขึ้นต้นด้วย sk- หรือ gsk-)');
+/* ===== Top bar ===== */
+.top-bar {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  z-index: 10;
+}
+.icon-btn {
+  background: rgba(0, 30, 50, 0.7);
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  color: #00d4ff;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.3s;
+}
+.icon-btn:hover {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+  transform: rotate(90deg);
 }
 
-// ====== Speech Recognition ======
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+.provider-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  background: rgba(0, 30, 50, 0.7);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: #00d4ff;
+}
+.provider-badge.groq   { color: #ff9944; border-color: #ff9944; }
+.provider-badge.openai { color: #00ffaa; border-color: #00ffaa; }
 
-if (!SpeechRecognition) {
-  setStatus('⚠ เบราว์เซอร์ไม่รองรับ กรุณาใช้ Chrome');
-} else {
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = langSelect.value;
-
-  recognition.onstart = () => {
-    isListening = true;
-    core.classList.add('listening');
-    core.classList.remove('speaking');
-    waveform.classList.add('active');
-    listenBtn.classList.add('active');
-    setStatus('🎤 กำลังฟัง...');
-  };
-
-  recognition.onresult = (e) => {
-    const transcriptText = Array.from(e.results)
-      .map(r => r[0].transcript).join('');
-    setStatus(`🎤 "${transcriptText}"`);
-
-    if (e.results[e.results.length - 1].isFinal) {
-      handleUserInput(transcriptText);
-    }
-  };
-
-  recognition.onerror = (e) => {
-    console.error('Speech error:', e.error);
-    setStatus(`⚠ Error: ${e.error}`);
-    stopListening();
-  };
-
-  recognition.onend = () => stopListening();
+/* ===== Typing indicator ===== */
+.typing {
+  display: flex;
+  gap: 6px;
+  padding: 8px 16px;
+}
+.typing span {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #00ffaa;
+  animation: bounce 1.4s infinite;
+}
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-10px); }
 }
 
-// ====== ฟังก์ชันควบคุม ======
-function startListening() {
-  if (!recognition) return;
-  recognition.lang = langSelect.value;
-  try { recognition.start(); }
-  catch (err) { console.warn(err); }
+/* ===== Text input row ===== */
+.text-input-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
 }
-
-function stopListening() {
-  isListening = false;
-  core.classList.remove('listening');
-  waveform.classList.remove('active');
-  listenBtn.classList.remove('active');
-  if (statusEl.textContent.startsWith('🎤') || statusEl.textContent.startsWith('⚠')) {
-    setStatus('SYSTEM READY');
-  }
+.text-input-row input {
+  flex: 1;
+  padding: 12px 18px;
+  background: rgba(0, 30, 50, 0.7);
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  border-radius: 8px;
+  color: #00d4ff;
+  font-size: 14px;
+  outline: none;
 }
-
-function setStatus(text) {
-  statusEl.textContent = text;
+.text-input-row input:focus {
+  border-color: #00d4ff;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
 }
+.text-input-row .btn { padding: 12px 20px; }
 
-function addMessage(role, text) {
-  const div = document.createElement('div');
-  div.className = `msg ${role}`;
-  div.innerHTML = `<span class="label">${role === 'user' ? 'YOU:' : 'JARVIS:'}</span>${escapeHtml(text)}`;
-  transcript.appendChild(div);
-  transcript.scrollTop = transcript.scrollHeight;
+/* ===== Mobile ===== */
+@media (max-width: 600px) {
+  .hud { padding: 20px; gap: 15px; }
+  .ring-3 { display: none; }
+  .ring-2 { width: 240px; height: 240px; }
+  .ring-1 { width: 180px; height: 180px; }
+  .core { width: 110px; height: 110px; }
+  .btn { padding: 12px 20px; font-size: 12px; letter-spacing: 2px; }
+  .transcript { max-height: 140px; font-size: 13px; }
+  .top-bar { top: 10px; right: 10px; }
 }
-
-function escapeHtml(str) {
-  return str.replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[c]));
-}
-
-// ====== ประมวลผลคำถาม (อัปเดต: รองรับ Groq + OpenAI) ======
-async function handleUserInput(text) {
-  if (!text.trim()) return;
-  addMessage('user', text);
-
-  const apiKey = apiKeyInput.value.trim();
-  if (!apiKey) {
-    speak('กรุณาใส่ API Key ก่อนครับ');
-    addMessage('ai', '⚠ กรุณาใส่ API Key ในช่องด้านล่าง');
-    return;
-  }
-
-  setStatus('⚙ กำลังประมวลผล...');
-  conversationHistory.push({ role: 'user', content: text });
-
-  try {
-    const cfg = getApiConfig(apiKey);
-    console.log(`🔌 Using ${cfg.name} → ${cfg.model}`);
-
-    const res = await fetch(cfg.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: cfg.model,
-        messages: conversationHistory,
-        temperature: 0.7,
-        max_tokens: 300
-      })
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `HTTP ${res.status}`);
-    }
-
-    const data = await res.json();
-    const reply = data.choices[0].message.content.trim();
-
-    conversationHistory.push({ role: 'assistant', content: reply });
-    addMessage('ai', reply);
-    speak(reply);
-
-  } catch (err) {
-    console.error(err);
-    addMessage('ai', `❌ เกิดข้อผิดพลาด: ${err.message}`);
-    setStatus('SYSTEM ERROR');
-    setTimeout(() => setStatus('SYSTEM READY'), 2500);
-  }
-}
-
-// ====== Text-to-Speech ======
-function speak(text) {
-  if (!('speechSynthesis' in window)) return;
-
-  speechSynthesis.cancel();
-  const clean = text
-    .replace(/[*_`#>\-]/g, '')
-    .replace(/[\u{1F300}-\u{1FAFF}]/gu, '');
-
-  const utter = new SpeechSynthesisUtterance(clean);
-  utter.lang = langSelect.value;
-  utter.rate = 1.05;
-  utter.pitch = 0.95;
-  utter.volume = 1;
-
-  const voices = speechSynthesis.getVoices();
-  const preferred = voices.find(v =>
-    v.lang.startsWith(langSelect.value.split('-')[0]) &&
-    /male|google|premium/i.test(v.name)
-  ) || voices.find(v => v.lang.startsWith(langSelect.value.split('-')[0]));
-  if (preferred) utter.voice = preferred;
-
-  utter.onstart = () => {
-    core.classList.add('speaking');
-    core.classList.remove('listening');
-    waveform.classList.add('active');
-    setStatus('🔊 กำลังตอบ...');
-  };
-  utter.onend = () => {
-    core.classList.remove('speaking');
-    waveform.classList.remove('active');
-    setStatus('SYSTEM READY');
-  };
-
-  speechSynthesis.speak(utter);
-}
-
-if ('speechSynthesis' in window) {
-  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
-}
-
-// ====== ปุ่มควบคุม ======
-listenBtn.addEventListener('click', () => {
-  if (!recognition) {
-    alert('เบราว์เซอร์ไม่รองรับ Web Speech API กรุณาใช้ Chrome / Edge');
-    return;
-  }
-  if (isListening) {
-    recognition.stop();
-  } else {
-    startListening();
-  }
-});
-
-clearBtn.addEventListener('click', () => {
-  transcript.innerHTML = '';
-  conversationHistory = conversationHistory.slice(0, 1);
-  setStatus('SYSTEM READY');
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
-    e.preventDefault();
-    listenBtn.click();
-  }
-});
