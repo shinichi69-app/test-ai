@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>J.A.R.V.I.S - Groq Neural Link</title>
 <style>
-  /* CSS เดิมคงไว้เพื่อความสวยงาม */
+  /* CSS คงเดิมเพื่อรักษาหน้าตา JARVIS */
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&display=swap');
   :root { --primary: #00d4ff; --secondary: #ff6a00; --bg-dark: #000a14; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -109,13 +109,13 @@
   </div>
 
 <script>
-  // === CONFIGURATION ===
-  // รายชื่อโมเดลที่จะลองใช้เรียงตามลำดับ (ถ้าตัวแรกพัง จะลองตัวถัดไปอัตโนมัติ)
+  // === UPDATED MODEL LIST (2026 ACTIVE MODELS) ===
+  // ตัด qwen-2.5-32b ออกแล้ว เพิ่มโมเดลที่ยังทำงานได้จริง
   const MODELS = [
-    'qwen-2.5-32b',           // โมเดลหลักที่หวังว่าจะใช้ได้
-    'qwen-2.5-coder-32b',     // ตัวสำรองกลุ่ม Qwen
-    'llama-3.3-70b-versatile',// ตัวสำรองกลุ่ม Llama (เก่งมากและเสถียร)
-    'gemma2-9b-it'            // ตัวสุดท้าย
+    'qwen-qwq-32b',             // Qwen รุ่นใหม่ที่ Groq ยังรองรับ
+    'llama-3.3-70b-versatile',  // Llama 3.3 เสถียรที่สุดตอนนี้
+    'deepseek-r1-distill-llama-70b', // DeepSeek R1 Distill (เก่งมาก)
+    'gemma2-9b-it'              // Google Gemma 2 ตัวเล็กแต่เร็ว
   ];
   
   let recognition;
@@ -190,7 +190,7 @@
     // Loop through models to find one that works
     for (const model of MODELS) {
       try {
-        addLog(`Connecting via ${model}...`, 'sys');
+        addLog(`Attempting connection via ${model}...`, 'sys');
         
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -228,18 +228,23 @@
       } catch (error) {
         console.warn(`Model ${model} failed:`, error.message);
         lastError = error.message;
-        // ถ้า error เป็นเรื่อง model not found ให้ลองตัวต่อไปทันที
-        if (error.message.includes('not found') || error.message.includes('does not exist')) {
-          continue; 
+        
+        // เช็กว่าเป็น error ประเภท "โมเดลหมดอายุ" หรือไม่
+        if (error.message.includes('decommissioned') || 
+            error.message.includes('not found') || 
+            error.message.includes('does not exist')) {
+          addLog(`⚠ Model "${model}" is unavailable. Switching to next...`, 'sys');
+          continue; // ลองตัวถัดไปทันที
         }
+        
         // ถ้าเป็น error อื่นๆ (เช่น Key ผิด, Quota เต็ม) ให้หยุดเลย
         break;
       }
     }
 
     if (!success) {
-      addLog(`Connection Failed: ${lastError}`, 'sys');
-      addLog('Tip: Check your API Key or try a different model.', 'sys');
+      addLog(` Connection Failed: ${lastError}`, 'sys');
+      addLog('💡 Tip: Your API Key might be invalid or quota exceeded.', 'sys');
     }
 
     sysStatus.textContent = 'SYSTEM ONLINE';
@@ -296,7 +301,6 @@
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       const voices = window.speechSynthesis.getVoices();
-      // พยายามหาเสียงไทยก่อน ถ้าไม่มีใช้เสียงเริ่มต้น
       const thaiVoice = voices.find(v => v.lang.includes('th'));
       if (thaiVoice) utterance.voice = thaiVoice;
       
