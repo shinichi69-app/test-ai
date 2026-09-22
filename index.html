@@ -1,75 +1,878 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="JARVIS AI Assistant - สั่งการด้วยเสียง"/>
-  <meta name="theme-color" content="#001a33"/>
-  <title>J.A.R.V.I.S - AI Assistant</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2300d4ff'/></svg>">
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="JARVIS AI Assistant - สั่งการด้วยเสียง"/>
+<meta name="theme-color" content="#001a33"/>
+<title>J.A.R.V.I.S - AI Assistant</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2300d4ff'/></svg>">
+
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', 'SF Pro Display', -apple-system, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background: radial-gradient(ellipse at center, #0a1929 0%, #000 70%);
+  color: #00d4ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: hidden;
+  position: relative;
+  padding: 20px 0;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 212, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: gridMove 20s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes gridMove {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(40px, 40px); }
+}
+
+/* ============================================================
+   TOP BAR (Provider badge + Settings)
+   ============================================================ */
+.top-bar {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  z-index: 100;
+}
+
+.provider-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  background: rgba(0, 30, 50, 0.85);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: #00d4ff;
+  transition: all 0.3s;
+  backdrop-filter: blur(10px);
+}
+.provider-badge.groq   { color: #ff9944; border-color: #ff9944; box-shadow: 0 0 15px rgba(255,153,68,0.4); }
+.provider-badge.openai { color: #00ffaa; border-color: #00ffaa; box-shadow: 0 0 15px rgba(0,255,170,0.4); }
+
+.icon-btn {
+  background: rgba(0, 30, 50, 0.85);
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  color: #00d4ff;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+.icon-btn:hover {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+  transform: rotate(90deg);
+}
+
+/* ============================================================
+   HUD CONTAINER
+   ============================================================ */
+.hud {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  padding: 40px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  z-index: 2;
+}
+
+/* ============================================================
+   RINGS + CORE
+   ============================================================ */
+.rings-wrapper {
+  position: relative;
+  width: 340px;
+  height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 212, 255, 0.4);
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.4),
+              inset 0 0 30px rgba(0, 212, 255, 0.2);
+  pointer-events: none;
+}
+
+.ring-1 {
+  width: 220px; height: 220px;
+  animation: spin 12s linear infinite;
+  border-style: dashed;
+}
+.ring-2 {
+  width: 280px; height: 280px;
+  animation: spinReverse 20s linear infinite;
+  border-color: rgba(0, 212, 255, 0.25);
+}
+.ring-3 {
+  width: 340px; height: 340px;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  animation: spin 8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spinReverse { to { transform: rotate(-360deg); } }
+
+.core {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.core-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #00d4ff 0%, #0066aa 40%, #001a33 80%);
+  box-shadow: 0 0 60px #00d4ff, inset 0 0 40px rgba(255,255,255,0.4);
+  transition: all 0.3s;
+}
+
+.core-pulse {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid #00d4ff;
+  animation: pulse 2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  0%   { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(2);   opacity: 0; }
+}
+
+.core.listening .core-inner {
+  background: radial-gradient(circle, #ff3366 0%, #990022 60%, #330010 100%);
+  box-shadow: 0 0 80px #ff3366, inset 0 0 40px rgba(255,255,255,0.5);
+  animation: coreBeat 0.6s ease-in-out infinite alternate;
+}
+.core.speaking .core-inner {
+  background: radial-gradient(circle, #00ffaa 0%, #009966 60%, #003322 100%);
+  box-shadow: 0 0 80px #00ffaa, inset 0 0 40px rgba(255,255,255,0.5);
+  animation: coreBeat 0.3s ease-in-out infinite alternate;
+}
+.core.error .core-inner {
+  background: radial-gradient(circle, #ff3366 0%, #660000 60%, #330000 100%);
+  box-shadow: 0 0 80px #ff3366;
+}
+
+@keyframes coreBeat {
+  from { transform: scale(1); }
+  to   { transform: scale(1.1); }
+}
+
+/* ============================================================
+   WAVEFORM
+   ============================================================ */
+.waveform {
+  display: flex;
+  gap: 6px;
+  height: 50px;
+  align-items: center;
+  opacity: 0.3;
+  transition: opacity 0.3s;
+}
+.waveform.active { opacity: 1; }
+.waveform span {
+  width: 4px;
+  height: 10px;
+  background: #00d4ff;
+  border-radius: 2px;
+  box-shadow: 0 0 10px #00d4ff;
+}
+.waveform.active span {
+  animation: wave 0.8s ease-in-out infinite;
+}
+.waveform span:nth-child(2) { animation-delay: 0.1s; }
+.waveform span:nth-child(3) { animation-delay: 0.2s; }
+.waveform span:nth-child(4) { animation-delay: 0.3s; }
+.waveform span:nth-child(5) { animation-delay: 0.4s; }
+.waveform span:nth-child(6) { animation-delay: 0.5s; }
+.waveform span:nth-child(7) { animation-delay: 0.4s; }
+.waveform span:nth-child(8) { animation-delay: 0.3s; }
+.waveform span:nth-child(9) { animation-delay: 0.2s; }
+.waveform span:nth-child(10){ animation-delay: 0.1s; }
+
+@keyframes wave {
+  0%, 100% { height: 10px; }
+  50%      { height: 45px; }
+}
+
+/* ============================================================
+   STATUS
+   ============================================================ */
+.status {
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: #00d4ff;
+  text-shadow: 0 0 10px #00d4ff;
+  font-weight: 600;
+  text-align: center;
+  min-height: 20px;
+}
+
+/* ============================================================
+   TRANSCRIPT
+   ============================================================ */
+.transcript {
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 15px;
+  background: rgba(0, 30, 50, 0.5);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  backdrop-filter: blur(10px);
+  min-height: 60px;
+}
+.transcript::-webkit-scrollbar { width: 6px; }
+.transcript::-webkit-scrollbar-thumb {
+  background: #00d4ff;
+  border-radius: 3px;
+}
+
+.msg { margin-bottom: 8px; word-wrap: break-word; }
+.msg.user { color: #7fdbff; }
+.msg.ai   { color: #00ffaa; }
+.msg .label {
+  font-weight: bold;
+  margin-right: 6px;
+  opacity: 0.7;
+}
+
+/* ============================================================
+   TYPING INDICATOR
+   ============================================================ */
+.typing {
+  display: flex;
+  gap: 6px;
+  padding: 4px 16px;
+  justify-content: flex-start;
+  width: 100%;
+}
+.typing[hidden] { display: none; }
+.typing span {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #00ffaa;
+  box-shadow: 0 0 10px #00ffaa;
+  animation: bounce 1.4s infinite;
+}
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-10px); }
+}
+
+/* ============================================================
+   CONTROLS
+   ============================================================ */
+.controls {
+  display: flex;
+  gap: 12px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn {
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #005577, #00aadd);
+  color: #fff;
+  border: 1px solid #00d4ff;
+  border-radius: 6px;
+  font-size: 13px;
+  letter-spacing: 3px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: inherit;
+}
+.btn:hover {
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.8);
+  transform: translateY(-2px);
+}
+.btn:active { transform: translateY(0); }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn.ghost {
+  background: transparent;
+  box-shadow: none;
+}
+.btn.ghost:hover {
+  background: rgba(0, 212, 255, 0.1);
+}
+.btn .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff3366;
+  box-shadow: 0 0 10px #ff3366;
+  transition: all 0.3s;
+}
+.btn.active .dot {
+  background: #00ffaa;
+  box-shadow: 0 0 15px #00ffaa;
+  animation: blink 1s infinite;
+}
+@keyframes blink {
+  50% { opacity: 0.3; }
+}
+
+/* ============================================================
+   TEXT INPUT ROW
+   ============================================================ */
+.text-input-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.text-input-row input {
+  flex: 1;
+  padding: 12px 18px;
+  background: rgba(0, 30, 50, 0.7);
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  border-radius: 8px;
+  color: #00d4ff;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.3s;
+}
+.text-input-row input:focus {
+  border-color: #00d4ff;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+}
+.text-input-row input::placeholder { color: rgba(0, 212, 255, 0.4); }
+.text-input-row .btn { padding: 12px 20px; letter-spacing: 0; }
+
+/* ============================================================
+   SETTINGS PANEL
+   ============================================================ */
+.settings {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.settings[hidden] { display: none; }
+.settings input, .settings select {
+  flex: 1;
+  padding: 10px 14px;
+  background: rgba(0, 30, 50, 0.7);
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  border-radius: 6px;
+  color: #00d4ff;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.3s;
+}
+.settings input:focus, .settings select:focus {
+  border-color: #00d4ff;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+}
+.settings select option { background: #001a33; color: #00d4ff; }
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+@media (max-width: 600px) {
+  .hud { padding: 20px 15px; gap: 15px; }
+  .rings-wrapper { width: 240px; height: 240px; }
+  .ring-1 { width: 160px; height: 160px; }
+  .ring-2 { width: 200px; height: 200px; }
+  .ring-3 { width: 240px; height: 240px; }
+  .core { width: 100px; height: 100px; }
+  .btn { padding: 12px 18px; font-size: 11px; letter-spacing: 2px; }
+  .transcript { max-height: 150px; font-size: 13px; }
+  .top-bar { top: 10px; right: 10px; }
+  .provider-badge { font-size: 10px; padding: 5px 10px; }
+  .icon-btn { width: 36px; height: 36px; font-size: 16px; }
+}
+</style>
 </head>
 <body>
 
-  <!-- Provider Badge มุมขวาบน -->
-  <div class="top-bar">
-    <div class="provider-badge" id="providerBadge">—</div>
-    <button id="toggleSettings" class="icon-btn" aria-label="ตั้งค่า">⚙️</button>
-  </div>
+<!-- Provider Badge + Settings Toggle -->
+<div class="top-bar">
+  <div class="provider-badge" id="providerBadge">—</div>
+  <button id="toggleSettings" class="icon-btn" aria-label="ตั้งค่า" title="ตั้งค่า">⚙️</button>
+</div>
 
-  <div class="hud">
+<div class="hud">
+
+  <!-- Rings + Core -->
+  <div class="rings-wrapper">
     <div class="ring ring-1"></div>
     <div class="ring ring-2"></div>
     <div class="ring ring-3"></div>
-
     <div class="core" id="core">
       <div class="core-inner"></div>
       <div class="core-pulse"></div>
     </div>
-
-    <div class="waveform" id="waveform">
-      <span></span><span></span><span></span><span></span><span></span>
-      <span></span><span></span><span></span><span></span><span></span>
-    </div>
-
-    <div class="status" id="status" aria-live="polite">SYSTEM READY</div>
-
-    <!-- บทสนทนา + Typing indicator -->
-    <div class="transcript" id="transcript" 
-         role="log" aria-live="polite" aria-label="บทสนทนา"></div>
-
-    <div class="typing" id="typing" hidden aria-hidden="true">
-      <span></span><span></span><span></span>
-    </div>
-
-    <!-- ปุ่มควบคุม -->
-    <div class="controls">
-      <button id="listenBtn" class="btn" aria-label="เริ่มฟังเสียง">
-        <span class="dot"></span> ACTIVATE
-      </button>
-      <button id="stopBtn" class="btn ghost" aria-label="หยุดพูด" hidden>⏹ STOP</button>
-      <button id="clearBtn" class="btn ghost" aria-label="ล้างบทสนทนา">CLEAR</button>
-    </div>
-
-    <!-- พิมพ์คำถาม -->
-    <div class="text-input-row">
-      <input type="text" id="textInput" placeholder="พิมพ์คำถาม..." 
-             aria-label="พิมพ์คำถาม" />
-      <button id="sendBtn" class="btn" aria-label="ส่ง">➤</button>
-    </div>
-
-    <!-- ตั้งค่า (ซ่อนได้) -->
-    <div class="settings" id="settingsPanel" hidden>
-      <input type="password" id="apiKey" 
-             placeholder="API Key (sk-... หรือ gsk_...)"
-             autocomplete="off" spellcheck="false" />
-      <select id="langSelect" aria-label="เลือกภาษา">
-        <option value="th-TH">🇹🇭 ไทย</option>
-        <option value="en-US">🇺🇸 English</option>
-      </select>
-    </div>
   </div>
 
-  <script src="script.js"></script>
+  <!-- Waveform -->
+  <div class="waveform" id="waveform">
+    <span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+
+  <!-- Status -->
+  <div class="status" id="status" aria-live="polite">SYSTEM READY</div>
+
+  <!-- Transcript -->
+  <div class="transcript" id="transcript" role="log" aria-live="polite" aria-label="บทสนทนา"></div>
+
+  <!-- Typing indicator -->
+  <div class="typing" id="typing" hidden aria-hidden="true">
+    <span></span><span></span><span></span>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button id="listenBtn" class="btn" aria-label="เริ่มฟังเสียง">
+      <span class="dot"></span> ACTIVATE
+    </button>
+    <button id="stopBtn" class="btn ghost" aria-label="หยุดพูด" hidden>⏹ STOP</button>
+    <button id="clearBtn" class="btn ghost" aria-label="ล้างบทสนทนา">CLEAR</button>
+  </div>
+
+  <!-- Text input -->
+  <div class="text-input-row">
+    <input type="text" id="textInput" placeholder="พิมพ์คำถาม..." aria-label="พิมพ์คำถาม" />
+    <button id="sendBtn" class="btn" aria-label="ส่ง">➤</button>
+  </div>
+
+  <!-- Settings -->
+  <div class="settings" id="settingsPanel" hidden>
+    <input type="password" id="apiKey"
+           placeholder="API Key (sk-... หรือ gsk_...)"
+           autocomplete="off" spellcheck="false" />
+    <select id="langSelect" aria-label="เลือกภาษา">
+      <option value="th-TH">🇹🇭 ไทย</option>
+      <option value="en-US">🇺🇸 English</option>
+    </select>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   JARVIS AI - Single File Script
+   ============================================================ */
+
+// ---------- DOM References ----------
+const core          = document.getElementById('core');
+const statusEl      = document.getElementById('status');
+const transcript    = document.getElementById('transcript');
+const listenBtn     = document.getElementById('listenBtn');
+const clearBtn      = document.getElementById('clearBtn');
+const stopBtn       = document.getElementById('stopBtn');
+const waveform      = document.getElementById('waveform');
+const typing        = document.getElementById('typing');
+const apiKeyInput   = document.getElementById('apiKey');
+const langSelect    = document.getElementById('langSelect');
+const textInput     = document.getElementById('textInput');
+const sendBtn       = document.getElementById('sendBtn');
+const toggleSettings= document.getElementById('toggleSettings');
+const settingsPanel = document.getElementById('settingsPanel');
+const providerBadge = document.getElementById('providerBadge');
+
+// ---------- State ----------
+let isListening = false;
+let recognition = null;
+let conversationHistory = [
+  {
+    role: 'system',
+    content: 'คุณคือ JARVIS ผู้ช่วย AI อัจฉริยะ สไตล์ Iron Man ตอบสุภาพ กระชับ ตรงประเด็น เรียกผู้ใช้ว่า "ท่าน" ตอบเป็นภาษาเดียวกับที่ผู้ใช้ถาม'
+  }
+];
+
+// ---------- โหลด API key ที่เคยบันทึก ----------
+apiKeyInput.value = localStorage.getItem('jarvis_api_key') || '';
+apiKeyInput.addEventListener('change', () => {
+  localStorage.setItem('jarvis_api_key', apiKeyInput.value.trim());
+});
+
+// ---------- Toggle settings ----------
+toggleSettings.addEventListener('click', () => {
+  settingsPanel.hidden = !settingsPanel.hidden;
+});
+
+// ---------- เลือก Provider อัตโนมัติจากรูปแบบ Key ----------
+function getApiConfig(apiKey) {
+  if (apiKey.startsWith('gsk_')) {
+    return {
+      url: 'https://api.groq.com/openai/v1/chat/completions',
+      model: 'llama-3.3-70b-versatile',
+      name: 'Groq'
+    };
+  }
+  if (apiKey.startsWith('sk-')) {
+    return {
+      url: 'https://api.openai.com/v1/chat/completions',
+      model: 'gpt-4o-mini',
+      name: 'OpenAI'
+    };
+  }
+  throw new Error('API Key ไม่ถูกต้อง (ต้องขึ้นต้นด้วย sk- หรือ gsk-)');
+}
+
+// ============================================================
+// SPEECH RECOGNITION
+// ============================================================
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (!SpeechRecognition) {
+  setStatus('⚠ เบราว์เซอร์ไม่รองรับ กรุณาใช้ Chrome');
+  listenBtn.disabled = true;
+} else {
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = langSelect.value;
+
+  recognition.onstart = () => {
+    isListening = true;
+    core.classList.add('listening');
+    core.classList.remove('speaking', 'error');
+    waveform.classList.add('active');
+    listenBtn.classList.add('active');
+    setStatus('🎤 กำลังฟัง...');
+  };
+
+  recognition.onresult = (e) => {
+    const transcriptText = Array.from(e.results)
+      .map(r => r[0].transcript).join('');
+    setStatus(`🎤 "${transcriptText}"`);
+
+    if (e.results[e.results.length - 1].isFinal) {
+      handleUserInput(transcriptText);
+    }
+  };
+
+  recognition.onerror = (e) => {
+    console.error('Speech error:', e.error);
+    let msg = `⚠ ${e.error}`;
+    if (e.error === 'not-allowed') msg = '⚠ กรุณาอนุญาตไมโครโฟน';
+    if (e.error === 'no-speech')   msg = '⚠ ไม่ได้ยินเสียง';
+    setStatus(msg);
+    stopListening();
+  };
+
+  recognition.onend = () => stopListening();
+}
+
+// ============================================================
+// ควบคุมการฟัง
+// ============================================================
+function startListening() {
+  if (!recognition) return;
+  recognition.lang = langSelect.value;
+  try {
+    recognition.start();
+  } catch (err) {
+    console.warn('Recognition already started:', err);
+  }
+}
+
+function stopListening() {
+  isListening = false;
+  core.classList.remove('listening');
+  waveform.classList.remove('active');
+  listenBtn.classList.remove('active');
+  if (statusEl.textContent.startsWith('🎤')) {
+    setStatus('SYSTEM READY');
+  }
+}
+
+function setStatus(text) {
+  statusEl.textContent = text;
+}
+
+// ============================================================
+// แสดงข้อความใน transcript
+// ============================================================
+function addMessage(role, text) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `<span class="label">${role === 'user' ? 'YOU:' : 'JARVIS:'}</span>${escapeHtml(text)}`;
+  transcript.appendChild(div);
+  transcript.scrollTop = transcript.scrollHeight;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// ============================================================
+// ประมวลผลคำถาม → เรียก API
+// ============================================================
+async function handleUserInput(text) {
+  if (!text || !text.trim()) return;
+  addMessage('user', text);
+
+  const apiKey = apiKeyInput.value.trim();
+  if (!apiKey) {
+    speak('กรุณาใส่ API Key ก่อนครับ');
+    addMessage('ai', '⚠ กรุณาใส่ API Key ในช่องตั้งค่า (⚙️ มุมขวาบน)');
+    settingsPanel.hidden = false;
+    return;
+  }
+
+  let cfg;
+  try {
+    cfg = getApiConfig(apiKey);
+  } catch (err) {
+    addMessage('ai', `❌ ${err.message}`);
+    settingsPanel.hidden = false;
+    return;
+  }
+
+  // อัปเดต provider badge
+  providerBadge.textContent = `● ${cfg.name}`;
+  providerBadge.className = `provider-badge ${cfg.name.toLowerCase()}`;
+
+  setStatus('⚙ กำลังประมวลผล...');
+  typing.hidden = false;
+  stopBtn.hidden = true;
+
+  conversationHistory.push({ role: 'user', content: text });
+
+  try {
+    const res = await fetch(cfg.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: conversationHistory,
+        temperature: 0.7,
+        max_tokens: 300
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const reply = data.choices[0].message.content.trim();
+
+    conversationHistory.push({ role: 'assistant', content: reply });
+    addMessage('ai', reply);
+    speak(reply);
+
+  } catch (err) {
+    console.error(err);
+    addMessage('ai', `❌ เกิดข้อผิดพลาด: ${err.message}`);
+    setStatus('SYSTEM ERROR');
+    core.classList.add('error');
+    setTimeout(() => {
+      core.classList.remove('error');
+      setStatus('SYSTEM READY');
+    }, 2500);
+  } finally {
+    typing.hidden = true;
+  }
+}
+
+// ============================================================
+// TEXT-TO-SPEECH
+// ============================================================
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+
+  speechSynthesis.cancel();
+  const clean = String(text)
+    .replace(/[*_`#>]/g, '')
+    .replace(/[\u{1F300}-\u{1FAFF}]/gu, '');
+
+  const utter = new SpeechSynthesisUtterance(clean);
+  utter.lang = langSelect.value;
+  utter.rate = 1.05;
+  utter.pitch = 0.95;
+  utter.volume = 1;
+
+  const voices = speechSynthesis.getVoices();
+  const langPrefix = langSelect.value.split('-')[0];
+  const preferred =
+    voices.find(v => v.lang.startsWith(langPrefix) && /male|google|premium/i.test(v.name)) ||
+    voices.find(v => v.lang.startsWith(langPrefix));
+  if (preferred) utter.voice = preferred;
+
+  utter.onstart = () => {
+    core.classList.add('speaking');
+    core.classList.remove('listening');
+    waveform.classList.add('active');
+    setStatus('🔊 กำลังตอบ...');
+    stopBtn.hidden = false;
+  };
+  utter.onend = () => {
+    core.classList.remove('speaking');
+    waveform.classList.remove('active');
+    setStatus('SYSTEM READY');
+    stopBtn.hidden = true;
+  };
+  utter.onerror = () => {
+    core.classList.remove('speaking');
+    waveform.classList.remove('active');
+    stopBtn.hidden = true;
+  };
+
+  speechSynthesis.speak(utter);
+}
+
+// โหลด voices (Chrome โหลดแบบ async)
+if ('speechSynthesis' in window) {
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+}
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+
+// ปุ่ม Activate
+listenBtn.addEventListener('click', () => {
+  if (!recognition) {
+    alert('เบราว์เซอร์ไม่รองรับ Web Speech API\nกรุณาใช้ Chrome หรือ Edge');
+    return;
+  }
+  if (isListening) {
+    recognition.stop();
+  } else {
+    startListening();
+  }
+});
+
+// ปุ่ม Stop speaking
+stopBtn.addEventListener('click', () => {
+  speechSynthesis.cancel();
+  stopBtn.hidden = true;
+  core.classList.remove('speaking');
+  waveform.classList.remove('active');
+  setStatus('SYSTEM READY');
+});
+
+// ปุ่ม Clear
+clearBtn.addEventListener('click', () => {
+  transcript.innerHTML = '';
+  conversationHistory = conversationHistory.slice(0, 1);
+  setStatus('SYSTEM READY');
+});
+
+// ปุ่ม Send (text input)
+sendBtn.addEventListener('click', () => {
+  const t = textInput.value.trim();
+  if (t) {
+    handleUserInput(t);
+    textInput.value = '';
+  }
+});
+
+textInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    sendBtn.click();
+  }
+});
+
+// Hotkeys
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+  if (e.code === 'Space') {
+    e.preventDefault();
+    listenBtn.click();
+  }
+  if (e.key === 'Escape') {
+    speechSynthesis.cancel();
+    stopBtn.hidden = true;
+    core.classList.remove('speaking');
+    waveform.classList.remove('active');
+    setStatus('SYSTEM READY');
+  }
+  if (e.key === 'c' || e.key === 'C') {
+    clearBtn.click();
+  }
+});
+
+// ============================================================
+// INIT
+// ============================================================
+console.log('%c🤖 JARVIS System Online', 'color:#00d4ff;font-size:16px;font-weight:bold');
+console.log('💡 ใส่ API Key ที่ปุ่ม ⚙️ มุมขวาบน');
+console.log('🎤 กด Spacebar หรือปุ่ม ACTIVATE เพื่อพูด');
+console.log('⌨️  หรือพิมพ์คำถามในช่องด้านล่าง');
+
+// เช็คว่ามี API key หรือยัง
+if (!apiKeyInput.value) {
+  settingsPanel.hidden = false;
+  providerBadge.textContent = '⚙ ใส่ API Key';
+  providerBadge.className = 'provider-badge';
+}
+</script>
+
 </body>
 </html>
