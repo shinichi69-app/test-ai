@@ -168,9 +168,9 @@ body::after{
     <div>
       <label class="setting-label" for="providerSelect">API PROVIDER</label>
       <select id="providerSelect">
+        <option value="gemini">Google Gemini (Free)</option>
         <option value="openai">OpenAI</option>
         <option value="groq">Groq</option>
-        <option value="gemini">Google Gemini</option>
         <option value="openrouter">OpenRouter</option>
         <option value="custom">Custom / OpenAI Compatible</option>
       </select>
@@ -263,6 +263,13 @@ let conversationHistory=[{
    MULTI API CONFIG
    ============================================================ */
 const PROVIDERS={
+  gemini:{
+    name:'Gemini Free',
+    className:'gemini',
+    url:'https://generativelanguage.googleapis.com/v1beta/models/',
+    models:['gemini-2.5-flash','gemini-2.5-flash-lite','gemini-3-flash','gemini-3.1-flash-lite'],
+    type:'gemini'
+  },
   openai:{
     name:'OpenAI',
     className:'openai',
@@ -276,13 +283,6 @@ const PROVIDERS={
     url:'https://api.groq.com/openai/v1/chat/completions',
     models:['llama-3.3-70b-versatile','llama-3.1-8b-instant','openai/gpt-oss-120b','openai/gpt-oss-20b'],
     type:'openai'
-  },
-  gemini:{
-    name:'Gemini',
-    className:'gemini',
-    url:'https://generativelanguage.googleapis.com/v1beta/models/',
-    models:['gemini-2.5-flash','gemini-2.5-pro','gemini-2.0-flash'],
-    type:'gemini'
   },
   openrouter:{
     name:'OpenRouter',
@@ -302,8 +302,8 @@ const PROVIDERS={
 
 function storageKey(provider){return 'jarvis_'+provider+'_api_key'}
 function loadProviderConfig(){
-  const p=localStorage.getItem('jarvis_provider')||'openai';
-  providerSelect.value=PROVIDERS[p]?p:'openai';
+  const p=localStorage.getItem('jarvis_provider')||'gemini';
+  providerSelect.value=PROVIDERS[p]?p:'gemini';
   langSelect.value=localStorage.getItem('jarvis_lang')||'th-TH';
   customUrl.value=localStorage.getItem('jarvis_custom_url')||'';
   temperatureInput.value=localStorage.getItem('jarvis_temperature')||'.7';
@@ -370,19 +370,36 @@ async function callOpenAICompatible(cfg,messages){
   return String(reply).trim();
 }
 
+/* ============================================================
+   GEMINI API FUNCTION (Free Tier / v1beta)
+   ============================================================ */
 async function callGemini(cfg,messages){
   const url=PROVIDERS.gemini.url+encodeURIComponent(cfg.model)+':generateContent?key='+encodeURIComponent(cfg.key);
+  
+  // แปลงข้อความบทสนทนาให้ตรงโครงสร้าง Gemini
   const contents=messages.filter(m=>m.role!=='system').map(m=>({
     role:m.role==='assistant'?'model':'user',
     parts:[{text:m.content}]
   }));
+  
   const system=messages.find(m=>m.role==='system');
   const body={contents};
+  
   if(system) body.systemInstruction={parts:[{text:system.content}]};
-  body.generationConfig={temperature:Number(temperatureInput.value)||.7,maxOutputTokens:500};
-  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  body.generationConfig={
+    temperature:Number(temperatureInput.value)||.7,
+    maxOutputTokens:500
+  };
+  
+  const res=await fetch(url,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  });
+  
   const data=await res.json().catch(()=>({}));
   if(!res.ok) throw new Error(data.error?.message||`HTTP ${res.status}`);
+  
   const reply=data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('').trim();
   if(!reply) throw new Error('Gemini ไม่ส่งข้อความตอบกลับ');
   return reply;
@@ -418,7 +435,7 @@ function friendlyError(err){
   if(s.includes('quota')||s.includes('billing')||s.includes('credit')) return 'เครดิต/โควตา API ไม่เพียงพอ';
   if(s.includes('401')||s.includes('403')||s.includes('api key')||s.includes('invalid')) return 'API Key ไม่ถูกต้องหรือไม่มีสิทธิ์';
   if(s.includes('cors')) return 'ผู้ให้บริการบล็อกการเรียกจาก browser (CORS) ต้องใช้ backend/proxy';
-  if(s.includes('429')) return 'คำขอมากเกินไป กรุณารอสักครู่';
+  if(s.includes('429')) return 'คำขอเกินโควตารายนาที (Rate Limit Error 429) กรุณารอสักครู่';
   return err?.message||'ไม่ทราบสาเหตุ';
 }
 
@@ -624,7 +641,7 @@ loadProviderConfig();
 resizeCanvas();
 requestAnimationFrame(drawEnergyMatter);
 console.log('%c🤖 JARVIS Multi-API System Online','color:#00d4ff;font-size:16px;font-weight:bold');
-console.log('Providers: OpenAI / Groq / Gemini / OpenRouter / Custom');
+console.log('Providers: Gemini (Free) / OpenAI / Groq / OpenRouter / Custom');
 console.log('Energy Matter Field: ONLINE');
 
 if(!apiKeyInput.value){
