@@ -514,7 +514,7 @@ body::before {
 
 <script>
 /* ============================================================
-   JARVIS AI - Single File Script
+   JARVIS AI - Fixed Version
    ============================================================ */
 
 // ---------- DOM References ----------
@@ -555,19 +555,31 @@ toggleSettings.addEventListener('click', () => {
   settingsPanel.hidden = !settingsPanel.hidden;
 });
 
-// ---------- เลือก Provider อัตโนมัติจากรูปแบบ Key ----------
+// ============================================================
+// 🔧 แก้ไข: กำหนด Provider + Model ที่ถูกต้อง
+// ============================================================
 function getApiConfig(apiKey) {
   if (apiKey.startsWith('gsk_')) {
     return {
       url: 'https://api.groq.com/openai/v1/chat/completions',
-      model: 'llama-3.3-70b-versatile',
+      // ✅ โมเดลที่ Groq รองรับจริง (เรียงตามความสามารถ)
+      models: [
+        'llama-3.3-70b-versatile',   // ตัวหลัก (ใหม่สุด)
+        'llama-3.1-70b-versatile',   // สำรอง
+        'llama3-70b-8192',           // สำรอง 2
+        'llama3-8b-8192'             // สำรอง 3 (เล็ก เร็ว)
+      ],
       name: 'Groq'
     };
   }
   if (apiKey.startsWith('sk-')) {
     return {
       url: 'https://api.openai.com/v1/chat/completions',
-      model: 'gpt-4o-mini',
+      models: [
+        'gpt-4o-mini',   // ตัวหลัก (ถูกและเร็ว)
+        'gpt-3.5-turbo', // สำรอง
+        'gpt-4o'         // สำรอง (แพงกว่า)
+      ],
       name: 'OpenAI'
     };
   }
@@ -664,7 +676,7 @@ function escapeHtml(str) {
 }
 
 // ============================================================
-// ประมวลผลคำถาม → เรียก API
+// 🔧 แก้ไข: เรียก API พร้อมระบบ Fallback Model
 // ============================================================
 async function handleUserInput(text) {
   if (!text || !text.trim()) return;
@@ -697,44 +709,81 @@ async function handleUserInput(text) {
 
   conversationHistory.push({ role: 'user', content: text });
 
-  try {
-    const res = await fetch(cfg.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: cfg.model,
-        messages: conversationHistory,
-        temperature: 0.7,
-        max_tokens: 300
-      })
-    });
+  // 🔧 ลองโมเดลทีละตัวจนกว่าจะสำเร็จ
+  let lastError = null;
+  let reply = null;
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `HTTP ${res.status}`);
+  for (const model of cfg.models) {
+    try {
+      console.log(`[JARVIS] Trying model: ${model}`);
+      const res = await fetch(cfg.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: conversationHistory,
+          temperature: 0.7,
+          max_tokens: 300
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        lastError = new Error(err.error?.message || `HTTP ${res.status}`);
+        console.warn(`[JARVIS] Model ${model} failed:`, lastError.message);
+
+        // ถ้าเป็นเรื่องเครดิต/สิทธิ์ → หยุดลองเลย
+        const msg = lastError.message.toLowerCase();
+        if (msg.includes('credit') || msg.includes('quota') || msg.includes('billing')) {
+          throw lastError;
+        }
+        continue; // ลองโมเดลถัดไป
+      }
+
+      const data = await res.json();
+      reply = data.choices[0].message.content.trim();
+      console.log(`[JARVIS] ✅ Success with model: ${model}`);
+      break; // สำเร็จ → ออกจาก loop
+
+    } catch (err) {
+      lastError = err;
+      // ถ้าเป็น error เรื่องเครดิต → ไม่ต้องลองต่อ
+      const msg = (err.message || '').toLowerCase();
+      if (msg.includes('credit') || msg.includes('quota') || msg.includes('billing')) {
+        break;
+      }
     }
+  }
 
-    const data = await res.json();
-    const reply = data.choices[0].message.content.trim();
+  typing.hidden = true;
 
+  if (reply) {
     conversationHistory.push({ role: 'assistant', content: reply });
     addMessage('ai', reply);
     speak(reply);
+  } else {
+    // 🔧 แสดง error ที่อ่านเข้าใจง่าย
+    let friendlyMsg = lastError?.message || 'ไม่ทราบสาเหตุ';
+    const lower = friendlyMsg.toLowerCase();
 
-  } catch (err) {
-    console.error(err);
-    addMessage('ai', `❌ เกิดข้อผิดพลาด: ${err.message}`);
+    if (lower.includes('credit') || lower.includes('billing') || lower.includes('quota')) {
+      friendlyMsg = '💳 เครดิต API หมดแล้ว กรุณาเติมเงินที่ platform.openai.com/settings/organization/billing';
+    } else if (lower.includes('does not exist') || lower.includes('not have access')) {
+      friendlyMsg = '🚫 ไม่พบโมเดลที่ระบุ หรือบัญชีของคุณไม่มีสิทธิ์เข้าถึง กรุณาตรวจสอบ API Key';
+    } else if (lower.includes('invalid') || lower.includes('incorrect')) {
+      friendlyMsg = '🔑 API Key ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง';
+    }
+
+    addMessage('ai', `❌ ${friendlyMsg}`);
     setStatus('SYSTEM ERROR');
     core.classList.add('error');
     setTimeout(() => {
       core.classList.remove('error');
       setStatus('SYSTEM READY');
     }, 2500);
-  } finally {
-    typing.hidden = true;
   }
 }
 
@@ -792,8 +841,6 @@ if ('speechSynthesis' in window) {
 // ============================================================
 // EVENT LISTENERS
 // ============================================================
-
-// ปุ่ม Activate
 listenBtn.addEventListener('click', () => {
   if (!recognition) {
     alert('เบราว์เซอร์ไม่รองรับ Web Speech API\nกรุณาใช้ Chrome หรือ Edge');
@@ -806,7 +853,6 @@ listenBtn.addEventListener('click', () => {
   }
 });
 
-// ปุ่ม Stop speaking
 stopBtn.addEventListener('click', () => {
   speechSynthesis.cancel();
   stopBtn.hidden = true;
@@ -815,14 +861,12 @@ stopBtn.addEventListener('click', () => {
   setStatus('SYSTEM READY');
 });
 
-// ปุ่ม Clear
 clearBtn.addEventListener('click', () => {
   transcript.innerHTML = '';
   conversationHistory = conversationHistory.slice(0, 1);
   setStatus('SYSTEM READY');
 });
 
-// ปุ่ม Send (text input)
 sendBtn.addEventListener('click', () => {
   const t = textInput.value.trim();
   if (t) {
@@ -838,7 +882,6 @@ textInput.addEventListener('keydown', (e) => {
   }
 });
 
-// Hotkeys
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 
@@ -866,7 +909,6 @@ console.log('💡 ใส่ API Key ที่ปุ่ม ⚙️ มุมขว
 console.log('🎤 กด Spacebar หรือปุ่ม ACTIVATE เพื่อพูด');
 console.log('⌨️  หรือพิมพ์คำถามในช่องด้านล่าง');
 
-// เช็คว่ามี API key หรือยัง
 if (!apiKeyInput.value) {
   settingsPanel.hidden = false;
   providerBadge.textContent = '⚙ ใส่ API Key';
